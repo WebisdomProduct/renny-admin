@@ -3,14 +3,12 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiPlus, FiEdit3, FiTrash2, FiLink, FiCheck, 
-  FiX, FiLayers, FiEye, FiEyeOff, FiChevronDown, FiChevronUp 
+  FiX, FiLayers, FiEye, FiEyeOff, FiChevronDown, FiChevronUp, FiCalendar 
 } from 'react-icons/fi';
 
 const News = () => {
-  // API Configuration
   const CMS_API = "http://localhost:3000/cms/news";
 
-  // State Management
   const [newsList, setNewsList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -23,26 +21,23 @@ const News = () => {
     description: '',
     externalLink: '',
     imageUrl: '',
+    date: '', // Added Date Field
     status: 'published',
     order: 0
   });
 
-  // --- 1. Google Drive Image Fix ---
   const getImageUrl = (url) => {
     if (!url || !url.includes("drive.google.com")) return url;
     const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (match && match[1]) {
-      // High-quality direct rendering link
       return `http://googleusercontent.com/profile/picture/d/${match[1]}=s1000`;
     }
     return url;
   };
 
-  // --- 2. Fetch All News ---
   const fetchNews = async () => {
     try {
       const res = await axios.get(CMS_API);
-      // Backend returns raw array in res.data based on your controller
       const data = Array.isArray(res.data) ? res.data : res.data.data;
       setNewsList(data || []);
     } catch (err) {
@@ -55,15 +50,15 @@ const News = () => {
     fetchNews();
   }, []);
 
-  // --- 3. Handle Create/Update (Upsert) ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Prepare data with formatted image link
     const processedData = {
       ...formData,
-      imageUrl: getImageUrl(formData.imageUrl)
+      imageUrl: getImageUrl(formData.imageUrl),
+      // If date is empty string, let backend default to Date.now()
+      date: formData.date || undefined 
     };
 
     try {
@@ -72,27 +67,31 @@ const News = () => {
       fetchNews();
     } catch (err) {
       console.error("Submit Error:", err);
-      alert("Failed to save. Ensure backend is running on port 3000.");
+      alert("Failed to save.");
     } finally {
       setLoading(false);
     }
   };
 
   const resetForm = () => {
-    setFormData({ id: null, title: '', description: '', externalLink: '', imageUrl: '', status: 'published', order: 0 });
+    setFormData({ 
+      id: null, title: '', description: '', externalLink: '', 
+      imageUrl: '', date: '', status: 'published', order: 0 
+    });
     setIsEditing(false);
     setShowForm(false);
   };
 
-  // --- 4. Handle Edit ---
   const handleEdit = (e, item) => {
-    e.stopPropagation(); // Stop card from collapsing
+    e.stopPropagation();
     setFormData({
-      id: item._id, // Map MongoDB _id to form id
+      id: item._id,
       title: item.title,
       description: item.description,
       externalLink: item.externalLink,
       imageUrl: item.imageUrl,
+      // Format date for the HTML input field (YYYY-MM-DD)
+      date: item.date ? new Date(item.date).toISOString().split('T')[0] : '',
       status: item.status,
       order: item.order
     });
@@ -101,13 +100,11 @@ const News = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // --- 5. Handle Delete ---
   const handleDelete = async (e, id) => {
     e.stopPropagation();
     if (window.confirm("Are you sure you want to permanently delete this news entry?")) {
       try {
         await axios.delete(`${CMS_API}/${id}`);
-        // Optimistic UI update
         setNewsList((prev) => prev.filter((item) => item._id !== id));
         if (expandedId === id) setExpandedId(null);
       } catch (err) {
@@ -118,7 +115,6 @@ const News = () => {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-20 font-helvetica text-[#292c44]">
-      {/* Navigation Bar */}
       <nav className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-3xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -139,7 +135,6 @@ const News = () => {
       </nav>
 
       <main className="max-w-3xl mx-auto px-6 mt-10">
-        {/* Editor Form */}
         <AnimatePresence>
           {showForm && (
             <motion.div
@@ -167,17 +162,41 @@ const News = () => {
                     value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} required
                   />
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input className="px-5 py-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-200" placeholder="News Source Link" value={formData.externalLink} onChange={(e) => setFormData({...formData, externalLink: e.target.value})} required />
-                  <input className="px-5 py-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-200" placeholder="Image Link" value={formData.imageUrl} onChange={(e) => setFormData({...formData, imageUrl: e.target.value})} required />
+                   <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">External News Link</label>
+                    <input className="w-full mt-1 px-5 py-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-200" placeholder="Source URL" value={formData.externalLink} onChange={(e) => setFormData({...formData, externalLink: e.target.value})} required />
+                   </div>
+                   <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Thumbnail Image URL</label>
+                    <input className="w-full mt-1 px-5 py-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-200" placeholder="Image URL" value={formData.imageUrl} onChange={(e) => setFormData({...formData, imageUrl: e.target.value})} required />
+                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <select className="px-5 py-4 bg-gray-50 rounded-2xl outline-none font-bold" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
-                    <option value="published">Status: Published</option>
-                    <option value="draft">Status: Draft</option>
-                  </select>
-                  <input type="number" className="px-5 py-4 bg-gray-50 rounded-2xl outline-none font-bold" placeholder="Order" value={formData.order} onChange={(e) => setFormData({...formData, order: e.target.value})} />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Publish Date</label>
+                    <input 
+                      type="date" 
+                      className="w-full mt-1 px-5 py-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-200 font-bold" 
+                      value={formData.date} 
+                      onChange={(e) => setFormData({...formData, date: e.target.value})} 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Status</label>
+                    <select className="w-full mt-1 px-5 py-4 bg-gray-50 rounded-2xl outline-none font-bold" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
+                      <option value="published">Published</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sort Order</label>
+                    <input type="number" className="w-full mt-1 px-5 py-4 bg-gray-50 rounded-2xl outline-none font-bold" placeholder="Order" value={formData.order} onChange={(e) => setFormData({...formData, order: e.target.value})} />
+                  </div>
                 </div>
+
                 <button type="submit" disabled={loading} className="w-full py-4 bg-[#292c44] text-white rounded-2xl font-poppins font-bold shadow-lg hover:opacity-90">
                   {loading ? "Syncing with Server..." : (isEditing ? "Update News Entry" : "Publish to News Feed")}
                 </button>
@@ -186,11 +205,10 @@ const News = () => {
           )}
         </AnimatePresence>
 
-        {/* --- News Feed --- */}
         <div className="space-y-6">
           <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em] mb-4 ml-2">Current Stream</h3>
           <AnimatePresence mode="popLayout">
-            {newsList.map((item, index) => (
+            {newsList.map((item) => (
               <motion.div
                 key={item._id}
                 layout
@@ -208,7 +226,7 @@ const News = () => {
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`w-1.5 h-1.5 rounded-full ${item.status === 'published' ? 'bg-green-500' : 'bg-amber-400'}`} />
                       <span className="text-[10px] font-black uppercase text-gray-300 flex items-center gap-2">
-                        {item.status} — Order: {item.order} {item.status === 'draft' ? <FiEyeOff /> : <FiEye />}
+                        {item.status} — {new Date(item.date).toLocaleDateString()} — Order: {item.order}
                       </span>
                     </div>
                     <h4 className="text-xl font-poppins font-bold leading-tight truncate">{item.title}</h4>
@@ -225,6 +243,10 @@ const News = () => {
                       className="mt-6 pt-6 border-t border-gray-50"
                     >
                       <img src={item.imageUrl} className="w-full h-56 object-cover rounded-3xl mb-6 shadow-sm" alt="Preview" />
+                      <div className="mb-4 flex items-center gap-2 text-gray-400">
+                         <FiCalendar size={14}/>
+                         <span className="text-xs font-bold uppercase tracking-widest">Article Date: {new Date(item.date).toDateString()}</span>
+                      </div>
                       <p className="text-gray-500 leading-relaxed font-helvetica mb-8 whitespace-pre-wrap">
                         {item.description}
                       </p>
@@ -233,7 +255,7 @@ const News = () => {
                           onClick={(e) => handleEdit(e, item)} 
                           className="flex-1 py-3 bg-gray-50 text-[#292c44] font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-gray-100"
                         >
-                          <FiEdit3 /> Edit Content
+                          <FiEdit3 /> Edit
                         </button>
                         <button 
                           onClick={(e) => handleDelete(e, item._id)} 
