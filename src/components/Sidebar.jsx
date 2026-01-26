@@ -88,6 +88,12 @@ const Sidebar = () => {
           <NavLink to="/admin/contacts" className={linkClass}>
             Contacts
           </NavLink>
+          <NavLink to="/admin/sustainability-leads" className={linkClass}>
+            Sustainability Leads
+          </NavLink>
+          <NavLink to="/admin/certificate-admin" className={linkClass}>
+            Certificates
+          </NavLink>
         </nav>
 
         {/* Logout */}

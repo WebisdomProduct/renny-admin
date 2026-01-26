@@ -17,6 +17,8 @@ import IPODocuments from './pages/IPODocuments';
 import IPOAudioVisual from './pages/IPAudioVisual';
 import ShareHoldingPattern from './pages/ShareHoldingPattern';
 import OurPolicies from './pages/OurPolicies';
+import SustainabilityLeads from './pages/SustainabilityLeads';
+import CertificateAdmin from './pages/CertificateAdmin';
 
 const App = () => {
   return (
@@ -29,6 +31,8 @@ const App = () => {
         <Route path="events" element={<Events />} />
         <Route path="careers" element={<Careers />} />
         <Route path="contacts" element={<Contacts />} />
+        <Route path="sustainability-leads" element={<SustainabilityLeads />} />
+        <Route path="certificate-admin" element={<CertificateAdmin />} />
 
         {/* Investor Relations */}
         <Route path="investors" element={<InvestorRelations />} />
@@ -40,6 +44,7 @@ const App = () => {
         <Route path="share-holding-pattern" element={<ShareHoldingPattern />} />
         <Route path="our-policies" element={<OurPolicies />} />
       </Route>
+      
     </Routes>
   );
 };
