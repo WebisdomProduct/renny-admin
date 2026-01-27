@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiEdit2, FiTrash2, FiPlus, FiX, FiFileText, FiExternalLink } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiPlus, FiX, FiFileText, FiExternalLink, FiUploadCloud } from "react-icons/fi";
 
 const IndustryReport = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false); // Progress state for S3
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -17,13 +18,13 @@ const IndustryReport = () => {
   });
 
   const brandColor = "#292C44";
-  const API_BASE = "http://localhost:3000/cms/industry-report"; // Adjust based on your route prefix
+  const API_BASE = "http://localhost:3000/cms/industry-report"; 
   const PUBLIC_API = "http://localhost:3000/api/industry-report";
+  const UPLOAD_API = "http://localhost:3000/cms/upload/upload"; // Consistent S3 route
 
   const fetchReports = async () => {
     try {
       const res = await axios.get(PUBLIC_API);
-      // Your controller returns the 'reports' array directly
       setReports(res.data);
     } catch (err) {
       console.error("Fetch error:", err);
@@ -34,10 +35,33 @@ const IndustryReport = () => {
 
   useEffect(() => { fetchReports(); }, []);
 
+  // NEW: Handle Local PDF Upload to S3
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const data = new FormData();
+    data.append("file", file); // Must match backend key 'file'
+
+    setUploading(true);
+    try {
+      const res = await axios.post(UPLOAD_API, data, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      // Set the returned S3 URL into the form state automatically
+      setFormData((prev) => ({ ...prev, url: res.data.fileUrl }));
+      alert("Report uploaded to Amazon S3!");
+    } catch (err) {
+      console.error(err);
+      alert("S3 Upload Failed. Check your AWS configuration.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Your upsert controller handles both Add (no reportId) and Update (with reportId)
       await axios.post(`${API_BASE}/upsert`, {
         reportId: isEditing ? formData.reportId : undefined,
         title: formData.title,
@@ -53,7 +77,6 @@ const IndustryReport = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Delete this industry report?")) {
       try {
-        // Matches: router.delete('/:reportId')
         await axios.delete(`${API_BASE}/record/${id}`);
         fetchReports();
       } catch (err) {
@@ -146,7 +169,7 @@ const IndustryReport = () => {
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
               <div className="px-8 py-6 border-b flex justify-between items-center">
-                <h2 className="text-xl font-bold">{isEditing ? "Edit Industry Report" : "Add Industry Report"}</h2>
+                <h2 className="text-xl font-bold">{isEditing ? "Edit Industry Report" : "Upload Industry Report"}</h2>
                 <button onClick={closeModal}><FiX /></button>
               </div>
               <form onSubmit={handleSubmit} className="p-8 space-y-5">
@@ -161,21 +184,50 @@ const IndustryReport = () => {
                     placeholder="e.g. Annual Industry Review 2025" 
                   />
                 </div>
+
+                {/* FILE UPLOAD SECTION */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Drive PDF URL</label>
-                  <input 
-                    type="url" 
-                    required 
-                    value={formData.url} 
-                    onChange={(e) => setFormData({...formData, url: e.target.value})}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 transition-colors"
-                    placeholder="https://drive.google.com/..." 
-                  />
+                  <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Upload file</label>
+                  <div className="relative">
+                    <input 
+                      type="file" 
+                      accept=".pdf" 
+                      onChange={handleFileUpload} 
+                      className="hidden" 
+                      id="report-upload" 
+                    />
+                    <label 
+                      htmlFor="report-upload" 
+                      className={`w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${formData.url ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'}`}
+                    >
+                      {uploading ? (
+                        <span className="text-sm font-bold animate-pulse text-gray-500">Uploading to AWS...</span>
+                      ) : (
+                        <>
+                          <FiUploadCloud className={formData.url ? "text-green-600" : "text-gray-400"} />
+                          <span className={`text-sm font-bold ${formData.url ? 'text-green-700' : 'text-gray-500'}`}>
+                            {formData.url ? "File Saved in S3" : "Choose file"}
+                          </span>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                  {formData.url && (
+                    <p className="mt-2 text-[9px] text-gray-400 break-all p-2 bg-gray-50 rounded">
+                      <strong>Preview URL:</strong> {formData.url}
+                    </p>
+                  )}
                 </div>
+
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={closeModal} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold">Cancel</button>
-                  <button type="submit" className="flex-1 py-3 text-white rounded-xl font-bold shadow-lg" style={{ backgroundColor: brandColor }}>
-                    {isEditing ? "Update Report" : "Upload Report"}
+                  <button 
+                    type="submit" 
+                    disabled={uploading || !formData.url}
+                    className={`flex-1 py-3 text-white rounded-xl font-bold shadow-lg transition-all ${uploading || !formData.url ? 'bg-gray-300 cursor-not-allowed' : ''}`}
+                    style={{ backgroundColor: uploading || !formData.url ? '#D1D5DB' : brandColor }}
+                  >
+                    {isEditing ? "Update Report" : "Save to Database"}
                   </button>
                 </div>
               </form>

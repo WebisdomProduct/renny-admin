@@ -1,18 +1,20 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiEdit2, FiTrash2, FiPlus, FiX, FiFileText, FiExternalLink } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiPlus, FiX, FiFileText, FiUploadCloud } from "react-icons/fi";
 
 const Financial = () => {
   const [data, setFinancials] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false); // New state for upload progress
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
   const PUBLIC_API = "http://localhost:3000/api/financials";
   const CMS_API = "http://localhost:3000/cms/financials";
+ // Change this in your Financial.jsx:
+const UPLOAD_API = "http://localhost:3000/cms/upload/upload";
 
-  // Your exact required keys
   const CATEGORIES = [
     { key: "audited", label: "Audited Financials of the Company" },
     { key: "creditors", label: "Outstanding Dues to Material Creditors" },
@@ -40,7 +42,30 @@ const Financial = () => {
 
   useEffect(() => { fetchFinancials(); }, []);
 
-  // EDIT FUNCTIONALITY: Opens modal and fills data
+  // NEW: Handles Local PDF Upload to S3
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const data = new FormData();
+    data.append("file", file);
+
+    setUploading(true);
+    try {
+      const res = await axios.post(UPLOAD_API, data, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      // Set the returned S3 URL into the fileUrl field
+      setFormData((prev) => ({ ...prev, fileUrl: res.data.fileUrl }));
+      alert("PDF uploaded to S3 successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("S3 Upload Failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleEditClick = (category, doc) => {
     setFormData({
       categoryId: category._id,
@@ -58,13 +83,11 @@ const Financial = () => {
     e.preventDefault();
     try {
       if (isEditing) {
-        // Calls: router.put('/category/:categoryId/document/:docId')
         await axios.put(`${CMS_API}/category/${formData.categoryId}/document/${formData.docId}`, {
           title: formData.title,
           fileUrl: formData.fileUrl
         });
       } else {
-        // Calls: router.post('/upsert')
         await axios.post(`${CMS_API}/upsert`, {
           slug: formData.slug,
           label: formData.label,
@@ -75,7 +98,7 @@ const Financial = () => {
       closeModal();
       fetchFinancials();
     } catch (err) {
-      alert("Error saving data. Check console.");
+      alert("Error saving data.");
     }
   };
 
@@ -97,12 +120,13 @@ const Financial = () => {
   return (
     <div className="p-8 bg-[#F8FAFC] min-h-screen">
       <div className="flex justify-between items-center mb-10">
-        <h1 className="text-3xl font-bold text-[#292C44]">Financial</h1>
+        <h1 className="text-3xl font-bold text-[#292C44]">Financial Studio</h1>
         <button onClick={() => setIsModalOpen(true)} className="bg-[#292C44] text-white px-6 py-3 rounded-lg font-bold">
-          <FiPlus className="inline mr-2" /> Add Record
+          <FiPlus className="inline mr-2" /> Add PDF Record
         </button>
       </div>
 
+      {/* Table Section (same as your original) */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b">
@@ -138,11 +162,14 @@ const Financial = () => {
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
               <form onSubmit={handleSubmit} className="p-8 space-y-5">
-                <h2 className="text-xl font-bold">{isEditing ? "Edit Financial PDF" : "Add Financial PDF"}</h2>
+                <div className="flex justify-between items-center">
+                   <h2 className="text-xl font-bold">{isEditing ? "Edit Document" : "Upload New PDF"}</h2>
+                   <button type="button" onClick={closeModal}><FiX size={24} className="text-gray-400"/></button>
+                </div>
                 
                 {!isEditing && (
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Category</label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Select Category</label>
                     <select 
                       value={formData.slug} 
                       onChange={(e) => {
@@ -160,18 +187,51 @@ const Financial = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Document Title</label>
-                  <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full bg-gray-50 border rounded-xl px-4 py-3 outline-none" />
+                  <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} placeholder="e.g., Annual Report 2024" className="w-full bg-gray-50 border rounded-xl px-4 py-3 outline-none" />
                 </div>
 
+                {/* FILE UPLOAD SECTION */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Drive Link</label>
-                  <input type="url" required value={formData.fileUrl} onChange={(e) => setFormData({...formData, fileUrl: e.target.value})} className="w-full bg-gray-50 border rounded-xl px-4 py-3 outline-none" />
+                  <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Upload PDF from Laptop</label>
+                  <div className="relative">
+                    <input 
+                      type="file" 
+                      accept=".pdf" 
+                      onChange={handleFileUpload} 
+                      className="hidden" 
+                      id="file-upload" 
+                    />
+                    <label 
+                      htmlFor="file-upload" 
+                      className={`w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${formData.fileUrl ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'}`}
+                    >
+                      {uploading ? (
+                        <span className="text-sm font-bold animate-pulse text-gray-500">Uploading to S3...</span>
+                      ) : (
+                        <>
+                          <FiUploadCloud className={formData.fileUrl ? "text-green-600" : "text-gray-400"} />
+                          <span className={`text-sm font-bold ${formData.fileUrl ? 'text-green-700' : 'text-gray-500'}`}>
+                            {formData.fileUrl ? "File Ready in S3" : "Choose PDF File"}
+                          </span>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                  {formData.fileUrl && (
+                    <p className="mt-2 text-[10px] text-gray-400 break-all bg-gray-50 p-2 rounded">
+                      <strong>S3 URL:</strong> {formData.fileUrl}
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 pt-4">
                   <button type="button" onClick={closeModal} className="flex-1 py-3 bg-gray-100 rounded-xl font-bold">Cancel</button>
-                  <button type="submit" className="flex-1 py-3 bg-[#292C44] text-white rounded-xl font-bold">
-                    {isEditing ? "Update PDF" : "Save PDF"}
+                  <button 
+                    type="submit" 
+                    disabled={uploading || !formData.fileUrl} 
+                    className={`flex-1 py-3 text-white rounded-xl font-bold transition-all ${uploading || !formData.fileUrl ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#292C44] shadow-lg'}`}
+                  >
+                    {isEditing ? "Update Entry" : "Save Entry"}
                   </button>
                 </div>
               </form>
