@@ -3,11 +3,12 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiPlus, FiEdit3, FiTrash2, FiFileText, FiType, FiList, 
-  FiChevronDown, FiChevronUp, FiImage, FiX, FiLayers, FiCalendar, FiHash 
+  FiChevronDown, FiChevronUp, FiImage, FiX, FiLayers, FiCalendar, FiHash, FiUploadCloud 
 } from 'react-icons/fi';
 
 const BlogAdmin = () => {
   const CMS_API = "http://localhost:3000/cms/blogs";
+  const UPLOAD_API = "http://localhost:3000/cms/upload/upload"; // Added S3 Route
 
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,6 +16,7 @@ const BlogAdmin = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [uploading, setUploading] = useState(false); // New state for upload status
 
   const [formData, setFormData] = useState({
     title: '',
@@ -32,6 +34,44 @@ const BlogAdmin = () => {
       const res = await axios.get(`${CMS_API}?role=admin`);
       setBlogs(res.data.data || []);
     } catch (err) { console.error("Fetch error:", err); }
+  };
+
+  // --- NEW: Main Image Upload Logic ---
+  const handleMainImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const data = new FormData();
+    data.append("file", file);
+    setUploading(true);
+
+    try {
+      const res = await axios.post(UPLOAD_API, data);
+      setFormData({ ...formData, mainImage: res.data.fileUrl });
+      alert("Main image uploaded successfully!");
+    } catch (err) {
+      alert("Image upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // --- NEW: Section Image Upload Logic ---
+  const handleSectionImageUpload = async (e, index) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const data = new FormData();
+    data.append("file", file);
+    
+    try {
+      const res = await axios.post(UPLOAD_API, data);
+      const updated = [...formData.bodySections];
+      updated[index].image = res.data.fileUrl; // Assigning to .image field
+      setFormData({ ...formData, bodySections: updated });
+    } catch (err) {
+      alert("Section image upload failed");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -92,11 +132,11 @@ const BlogAdmin = () => {
     setShowForm(false);
   };
 
-  // --- Section Logic ---
   const addSection = (type) => {
     const newSection = {
       type,
       content: '',
+      image: type === 'image' ? '' : undefined, // Initialize field for images
       listItems: type.includes('list') ? [{ title: '', description: '' }] : []
     };
     setFormData({ ...formData, bodySections: [...formData.bodySections, newSection] });
@@ -126,7 +166,6 @@ const BlogAdmin = () => {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-20 font-helvetica text-[#292c44]">
-      {/* Navigation */}
       <nav className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-100 px-6 h-20 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-[#292c44] rounded-xl flex items-center justify-center text-white shadow-lg">
@@ -149,7 +188,16 @@ const BlogAdmin = () => {
                   <textarea className="w-full p-5 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100" placeholder="Brief summary for cards..." rows="2" value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} required />
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100" placeholder="Main Image URL" value={formData.mainImage} onChange={e => setFormData({...formData, mainImage: e.target.value})} />
+                    {/* UPDATED: Main Image Upload UI */}
+                    <div className="relative group">
+                      <input type="file" id="main-up" className="hidden" onChange={handleMainImageUpload} accept="image/*" />
+                      <label htmlFor="main-up" className={`w-full p-4 flex items-center justify-between bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 cursor-pointer hover:bg-gray-100 transition-all ${formData.mainImage ? 'text-green-600' : 'text-gray-400'}`}>
+                        <span className="truncate max-w-[150px]">{uploading ? "Uploading..." : formData.mainImage ? "Image Ready" : "Upload Main Image"}</span>
+                        <FiUploadCloud size={18} />
+                      </label>
+                      {formData.mainImage && <img src={formData.mainImage} className="absolute -top-12 right-0 w-12 h-12 rounded-lg border-2 border-white shadow-md group-hover:scale-150 transition-all" />}
+                    </div>
+
                     <div className="relative">
                        <input type="date" className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 text-gray-500 font-bold" value={formData.publishedAt} onChange={e => setFormData({...formData, publishedAt: e.target.value})} />
                        <span className="absolute right-4 top-4 text-gray-300 pointer-events-none"><FiCalendar /></span>
@@ -157,13 +205,14 @@ const BlogAdmin = () => {
                   </div>
                 </div>
 
-                {/* Section Builder Controls */}
                 <div className="space-y-6">
                   <div className="flex items-center justify-between border-b pb-4">
                     <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">Content Builder</h3>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => addSection('heading')} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl hover:bg-gray-100 text-xs font-bold"><FiType /> Heading</button>
                       <button type="button" onClick={() => addSection('paragraph')} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl hover:bg-gray-100 text-xs font-bold"><FiLayers /> Paragraph</button>
+                      {/* NEW: Image Section Button */}
+                      <button type="button" onClick={() => addSection('image')} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl hover:bg-gray-100 text-xs font-bold"><FiImage /> Image</button>
                       <button type="button" onClick={() => addSection('bullet-list')} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl hover:bg-gray-100 text-xs font-bold"><FiList /> Points</button>
                       <button type="button" onClick={() => addSection('numbered-list')} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl hover:bg-gray-100 text-xs font-bold"><FiHash /> Numbers</button>
                     </div>
@@ -173,7 +222,23 @@ const BlogAdmin = () => {
                     <div key={sIndex} className="relative p-6 bg-gray-50/50 rounded-3xl border border-gray-100 group">
                       <button type="button" onClick={() => removeSection(sIndex)} className="absolute -top-2 -right-2 w-8 h-8 bg-red-50 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-sm"><FiX size={14} /></button>
                       
-                      {section.type === 'heading' || section.type === 'paragraph' ? (
+                      {/* UPDATED: Added Image Section Rendering logic */}
+                      {section.type === 'image' ? (
+                        <div className="space-y-4 flex flex-col items-center">
+                          <input type="file" id={`sec-up-${sIndex}`} className="hidden" onChange={(e) => handleSectionImageUpload(e, sIndex)} accept="image/*" />
+                          <label htmlFor={`sec-up-${sIndex}`} className={`w-full max-w-sm flex flex-col items-center justify-center py-8 border-2 border-dashed rounded-3xl cursor-pointer transition-all ${section.image ? 'bg-white border-green-200' : 'bg-gray-50'}`}>
+                            {section.image ? (
+                              <img src={section.image} className="max-h-40 rounded-xl shadow-sm mb-2" />
+                            ) : (
+                              <FiUploadCloud size={24} className="text-gray-300 mb-2" />
+                            )}
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              {section.image ? "Change Image" : "Upload Section Image"}
+                            </span>
+                          </label>
+                          <input className="w-full bg-transparent text-center text-xs text-gray-400 outline-none italic" placeholder="Image Caption (Optional)" value={section.content} onChange={(e) => updateSection(sIndex, e.target.value)} />
+                        </div>
+                      ) : (section.type === 'heading' || section.type === 'paragraph') ? (
                         <textarea className={`w-full bg-transparent outline-none ${section.type === 'heading' ? 'text-lg font-bold' : 'text-sm text-gray-600'}`} value={section.content} onChange={(e) => updateSection(sIndex, e.target.value)} rows={section.type === 'heading' ? 1 : 4} placeholder={`Enter ${section.type}...`} />
                       ) : (
                         <div className="space-y-4">
@@ -195,7 +260,7 @@ const BlogAdmin = () => {
                     <option value="draft">Save as Draft</option>
                     <option value="published">Publish Now</option>
                   </select>
-                  <button type="submit" disabled={loading} className="flex-1 py-4 bg-[#292c44] text-white rounded-2xl font-poppins font-bold shadow-xl">
+                  <button type="submit" disabled={loading || uploading} className="flex-1 py-4 bg-[#292c44] text-white rounded-2xl font-poppins font-bold shadow-xl">
                     {loading ? "Saving..." : (isEditing ? "Update Article" : "Create Article")}
                   </button>
                 </div>
@@ -204,7 +269,7 @@ const BlogAdmin = () => {
           )}
         </AnimatePresence>
 
-        {/* List View with Full Expansion */}
+        {/* List View section remains same */}
         <div className="space-y-4">
           <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-widest ml-4">Content Repository</h3>
           {blogs.map(blog => (
@@ -220,11 +285,11 @@ const BlogAdmin = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                   <div className="flex gap-1">
+                    <div className="flex gap-1">
                       <button onClick={(e) => handleEdit(e, blog)} className="p-3 text-gray-400 hover:text-[#292c44]"><FiEdit3 size={18}/></button>
                       <button onClick={(e) => handleDelete(e, blog._id)} className="p-3 text-red-200 hover:text-red-500"><FiTrash2 size={18}/></button>
-                   </div>
-                   {expandedId === blog._id ? <FiChevronUp /> : <FiChevronDown />}
+                    </div>
+                    {expandedId === blog._id ? <FiChevronUp /> : <FiChevronDown />}
                 </div>
               </div>
 
@@ -245,7 +310,14 @@ const BlogAdmin = () => {
                               {section.type === 'heading' && <h3 className="text-xl font-bold">{section.content}</h3>}
                               {section.type === 'paragraph' && <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{section.content}</p>}
                               
-                              {/* Bullet Points Logic */}
+                              {/* Renders image in preview */}
+                              {section.type === 'image' && (
+                                <div className="flex flex-col items-center">
+                                  <img src={section.image} className="max-h-60 rounded-xl" />
+                                  <p className="text-xs italic text-gray-400 mt-2">{section.content}</p>
+                                </div>
+                              )}
+
                               {section.type === 'bullet-list' && (
                                 <ul className="space-y-3 mt-2 list-disc pl-5">
                                   {section.listItems.map((item, i) => (
@@ -257,7 +329,6 @@ const BlogAdmin = () => {
                                 </ul>
                               )}
 
-                              {/* Numbered List Logic */}
                               {section.type === 'numbered-list' && (
                                 <ol className="space-y-3 mt-2 list-decimal pl-5">
                                   {section.listItems.map((item, i) => (
