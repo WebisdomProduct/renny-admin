@@ -6,10 +6,15 @@ import {
   FiChevronUp, FiBriefcase, FiDollarSign, FiFileText, FiSearch, 
   FiUser, FiMail, FiPhone, FiCalendar, FiGlobe, FiExternalLink
 } from "react-icons/fi";
+import { API } from "../config/api";
+import { notifySuccess, notifyError } from "../utils/notifications";
+
+
+
 
 const CareerAdmin = () => {
   // API Configuration
-  const CMS_API = "http://localhost:3000/cms/career";
+  const CMS_API = API.CMS_CAREER;
 
   // List States
   const [jobs, setJobs] = useState([]);
@@ -56,9 +61,7 @@ const CareerAdmin = () => {
       view === "jobs" 
         ? setJobs(res.data.data || []) 
         : setApps(res.data.data || []);
-    } catch (err) {
-      console.error("Fetch error:", err);
-    }
+    } catch { notifyError("Unable to complete the request."); }
   };
 
   const handleSubmit = async (e) => {
@@ -75,9 +78,9 @@ const CareerAdmin = () => {
       await axios.post(`${CMS_API}/jobs/upsert`, payload);
       resetForm();
       fetchData();
-      alert("Job record synchronized successfully!");
+      notifySuccess("Job record synchronized successfully!");
     } catch (err) {
-      alert("Save failed: " + (err.response?.data?.message || "Server Error"));
+      notifyError("Save failed: " + (err.response?.data?.message || "Server Error"));
     } finally {
       setLoading(false);
     }
@@ -109,8 +112,8 @@ const CareerAdmin = () => {
     try {
       await axios.delete(`${CMS_API}/${path}`);
       fetchData();
-    } catch (err) {
-      alert("Delete failed");
+    } catch {
+      notifyError("Delete failed");
     }
   };
 
@@ -282,7 +285,7 @@ const CareerAdmin = () => {
                            href={app.resumeUrl} 
                            target="_blank" 
                            rel="noreferrer" 
-                           className="inline-flex items-center gap-3 px-8 py-3 bg-[#292c44] text-white rounded-2xl font-bold text-sm hover:scale-105 transition-transform"
+                           className="inline-flex items-center gap-3 px-8 py-3  text-white rounded-2xl font-bold text-sm hover:scale-105 transition-transform"
                          >
                            <FiFileText /> View Resume <FiExternalLink size={12}/>
                          </a>

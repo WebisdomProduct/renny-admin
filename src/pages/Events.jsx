@@ -5,11 +5,16 @@ import {
   FiPlus, FiEdit3, FiTrash2, FiVideo, FiUploadCloud, 
   FiX, FiPlay, FiEye, FiEyeOff, FiChevronDown, FiChevronUp, FiCalendar, FiLink 
 } from 'react-icons/fi';
+import { API } from '../config/api';
+import { notifySuccess, notifyError } from "../utils/notifications";
+
+
+
 
 const EventsAdmin = () => {
   // API Configuration
-  const CMS_API = "http://localhost:3000/cms/events";
-  const UPLOAD_API = "http://localhost:3000/cms/upload/upload";
+  const CMS_API = API.CMS_EVENTS;
+  const UPLOAD_API = API.UPLOAD;
 
   // State Management
   const [events, setEvents] = useState([]);
@@ -38,9 +43,7 @@ const EventsAdmin = () => {
       if (res.data.success) {
         setEvents(res.data.data);
       }
-    } catch (err) {
-      console.error("Admin Fetch Error:", err);
-    }
+    } catch { notifyError("Unable to complete the request."); }
   };
 
   useEffect(() => {
@@ -59,9 +62,9 @@ const EventsAdmin = () => {
     try {
       const res = await axios.post(UPLOAD_API, data);
       setFormData(prev => ({ ...prev, videoUrl: res.data.fileUrl, type: 'file' }));
-      alert("Video uploaded to S3 successfully!");
-    } catch (err) {
-      alert("S3 Upload Failed. Check file size and format.");
+      notifySuccess("Video uploaded to S3 successfully!");
+    } catch {
+      notifyError("S3 Upload Failed. Check file size and format.");
     } finally {
       setUploading(false);
     }
@@ -82,10 +85,8 @@ const EventsAdmin = () => {
       await axios.post(`${CMS_API}/upsert`, payload);
       resetForm();
       fetchEvents();
-      alert("Event synchronized successfully!");
-    } catch (err) {
-      console.error("Submission Error:", err.response?.data);
-      alert("Error: " + (err.response?.data?.message || "Server error"));
+      notifySuccess("Event synchronized successfully!");
+    } catch (err) {      notifyError("Error: " + (err.response?.data?.message || "Server error"));
     } finally {
       setLoading(false);
     }
@@ -99,8 +100,8 @@ const EventsAdmin = () => {
         await axios.delete(`${CMS_API}/${id}`);
         setEvents(prev => prev.filter(ev => ev._id !== id));
         if (expandedId === id) setExpandedId(null);
-      } catch (err) {
-        alert("Delete failed");
+      } catch {
+        notifyError("Delete failed");
       }
     }
   };
@@ -120,7 +121,6 @@ const EventsAdmin = () => {
     setIsEditing(true);
     setUploadMode(item.type || 'file');
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetForm = () => {
@@ -141,29 +141,37 @@ const EventsAdmin = () => {
             <h1 className="text-xl font-bold">Event Gallery</h1>
           </div>
           <button
-            onClick={() => { isEditing ? resetForm() : setShowForm(!showForm); }}
-            className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all ${
-              showForm ? 'bg-gray-100 text-gray-500' : 'bg-[#292c44] text-white'
-            }`}
+            onClick={() => { resetForm(); setIsEditing(false); setShowForm(true); }}
+            className="px-6 py-2.5 rounded-full font-bold text-sm bg-[#292c44] text-white transition-all hover:opacity-90"
           >
-            {showForm ? 'Close' : 'Add Event Video'}
+            Add Event Video
           </button>
         </div>
       </nav>
 
-      <main className="max-w-3xl mx-auto px-6 mt-10">
-        {/* Form Section */}
-        <AnimatePresence>
-          {showForm && (
+      {/* Modal Overlay */}
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={resetForm}
+          >
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl p-8 mb-12"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl max-h-[90vh] overflow-y-auto"
             >
-              <h2 className="text-2xl font-black mb-6 text-[#292c44]">
-                {isEditing ? '⚡ Update Event' : '🎥 New Event Highlight'}
-              </h2>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-black text-[#292c44]">
+                  {isEditing ? '⚡ Update Event' : '🎥 New Event Highlight'}
+                </h2>
+                <button onClick={resetForm} className="p-2 hover:bg-gray-100 rounded-full transition-all"><FiX size={22}/></button>
+              </div>
 
               <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
                 <button type="button" onClick={() => setUploadMode('file')} className={`flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 ${uploadMode === 'file' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}><FiUploadCloud /> S3 Video</button>
@@ -171,16 +179,9 @@ const EventsAdmin = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                <input 
-                  className="w-full px-5 py-4 bg-gray-50 border rounded-2xl outline-none focus:ring-2 focus:ring-[#292c44]"
-                  placeholder="Event Title"
-                  value={formData.title} 
-                  onChange={(e) => setFormData({...formData, title: e.target.value})} required
-                />
-                
+                <input className="w-full px-5 py-4 bg-gray-50 border rounded-2xl outline-none focus:ring-2 focus:ring-[#292c44]" placeholder="Event Title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} required />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input className="px-5 py-4 bg-gray-50 border rounded-2xl outline-none" placeholder="Date (e.g. Dec 2024)" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} required />
-                  
                   {uploadMode === 'file' ? (
                     <label className={`flex items-center justify-between px-5 py-4 bg-gray-50 border rounded-2xl cursor-pointer ${formData.videoUrl && formData.type === 'file' ? 'text-green-600 border-green-200' : 'text-gray-400'}`}>
                       <input type="file" className="hidden" accept="video/*" onChange={handleVideoUpload} />
@@ -191,15 +192,7 @@ const EventsAdmin = () => {
                     <input className="px-5 py-4 bg-gray-50 border rounded-2xl outline-none" placeholder="Video URL" value={formData.videoUrl} onChange={(e) => setFormData({...formData, videoUrl: e.target.value, type: 'link'})} required />
                   )}
                 </div>
-
-                <textarea 
-                  rows="3"
-                  className="w-full px-5 py-4 bg-gray-50 border rounded-2xl outline-none"
-                  placeholder="Event Description"
-                  value={formData.description} 
-                  onChange={(e) => setFormData({...formData, description: e.target.value})} required
-                />
-
+                <textarea rows="3" className="w-full px-5 py-4 bg-gray-50 border rounded-2xl outline-none" placeholder="Event Description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} required />
                 <div className="grid grid-cols-2 gap-4">
                   <select className="px-5 py-4 bg-gray-50 rounded-2xl font-bold outline-none border" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
                     <option value="published">Status: Published</option>
@@ -207,14 +200,16 @@ const EventsAdmin = () => {
                   </select>
                   <input type="number" className="px-5 py-4 bg-gray-50 rounded-2xl outline-none font-bold border" placeholder="Order" value={formData.order} onChange={(e) => setFormData({...formData, order: Number(e.target.value)})} />
                 </div>
-
                 <button type="submit" disabled={loading || uploading} className="w-full py-4 bg-[#292c44] text-white rounded-2xl font-bold shadow-lg disabled:bg-gray-300">
                   {loading ? "Saving..." : (isEditing ? "Update Event" : "Add to Gallery")}
                 </button>
               </form>
             </motion.div>
-          )}
-        </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <main className="max-w-3xl mx-auto px-6 mt-10">
 
         {/* Inventory List */}
         <div className="space-y-6">

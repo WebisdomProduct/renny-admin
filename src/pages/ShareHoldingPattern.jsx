@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiEdit2, FiTrash2, FiPlus, FiX, FiFileText, FiExternalLink, FiUploadCloud, FiLink } from 'react-icons/fi';
+import { API } from '../config/api';
+import { notifySuccess, notifyError } from "../utils/notifications";
+
+
+
 
 const ShareHoldingPattern = () => {
   const [patterns, setPatterns] = useState([]);
@@ -14,15 +19,15 @@ const ShareHoldingPattern = () => {
   const [formData, setFormData] = useState({ recordId: "", title: "", url: "", type: "file" });
 
   const brandColor = "#292C44";
-  const CMS_API = "http://localhost:3000/cms/shareholding-pattern"; 
-  const PUBLIC_API = "http://localhost:3000/api/shareholding-pattern";
-  const UPLOAD_API = "http://localhost:3000/cms/upload/upload";
+  const CMS_API = API.CMS_SHAREHOLDING;
+  const PUBLIC_API = API.API_SHAREHOLDING;
+  const UPLOAD_API = API.UPLOAD;
 
   const fetchPatterns = async () => {
     try {
       const res = await axios.get(PUBLIC_API);
       setPatterns(res.data);
-    } catch (err) { console.error(err); } 
+    } catch { notifyError("Unable to load shareholding patterns."); } 
     finally { setLoading(false); }
   };
 
@@ -38,8 +43,8 @@ const ShareHoldingPattern = () => {
     try {
       const res = await axios.post(UPLOAD_API, data);
       setFormData(prev => ({ ...prev, url: res.data.fileUrl, type: 'file' }));
-      alert("Document uploaded to S3!");
-    } catch (err) { alert("S3 Upload Failed"); } 
+      notifySuccess("Document uploaded to S3!");
+    } catch { notifyError("S3 Upload Failed"); } 
     finally { setUploading(false); }
   };
 
@@ -54,7 +59,7 @@ const ShareHoldingPattern = () => {
       });
       closeModal();
       fetchPatterns();
-    } catch (err) { alert("Error saving record"); }
+    } catch { notifyError("Error saving record"); }
   };
 
   const handleDelete = async (id) => {
@@ -62,7 +67,7 @@ const ShareHoldingPattern = () => {
       try {
         await axios.delete(`${CMS_API}/record/${id}`);
         fetchPatterns();
-      } catch (err) { alert("Delete failed"); }
+      } catch { notifyError("Delete failed"); }
     }
   };
 

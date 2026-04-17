@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { notifyError } from "../utils/notifications";
 
 const SustainabilityLeads = () => {
   // Initialize as empty array to prevent map errors on first render
@@ -17,9 +18,7 @@ const SustainabilityLeads = () => {
         const leadsData = data?.leads || data || [];
         setLeads(Array.isArray(leadsData) ? leadsData : []);
         
-      } catch (err) {
-        console.error("Error fetching leads", err);
-      } finally {
+      } catch { notifyError("Unable to complete the request."); } finally {
         setLoading(false);
       }
     };
