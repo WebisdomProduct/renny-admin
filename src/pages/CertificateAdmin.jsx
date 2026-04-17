@@ -2,6 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiUploadCloud, FiTrash2, FiEdit3, FiSearch, FiPlus, FiX, FiInfo } from 'react-icons/fi';
+import { API } from '../config/api';
+import { notifyError } from "../utils/notifications";
+
+
+
 
 const CertificateAdmin = () => {
   const [certs, setCerts] = useState([]);
@@ -19,8 +24,8 @@ const CertificateAdmin = () => {
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const CMS_API = "http://localhost:3000/api/certificates";
-  const UPLOAD_API = "http://localhost:3000/cms/upload/upload"; 
+  const CMS_API = API.API_CERTIFICATES;
+  const UPLOAD_API = API.UPLOAD;
   const fileInputRef = useRef(null);
 
   useEffect(() => { fetchCerts(); }, []);
@@ -31,7 +36,7 @@ const CertificateAdmin = () => {
       const res = await axios.get(CMS_API);
       // Backend now returns { success: true, data: [...] }
       setCerts(Array.isArray(res.data.data) ? res.data.data : []);
-    } catch (err) { setCerts([]); } 
+    } catch { setCerts([]); } 
     finally { setLoading(false); }
   };
 
@@ -46,8 +51,8 @@ const CertificateAdmin = () => {
     try {
       const res = await axios.post(UPLOAD_API, data);
       setFormData({ ...formData, img: res.data.fileUrl });
-    } catch (err) {
-      alert("Cloud upload failed");
+    } catch {
+      notifyError("Cloud upload failed");
     } finally {
       setUploading(false);
     }
@@ -56,7 +61,7 @@ const CertificateAdmin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.img || !formData.title || !formData.description) {
-      return alert("Title, Description and Image are required");
+      return notifyError("Title, Description and Image are required");
     }
 
     try {
@@ -68,7 +73,7 @@ const CertificateAdmin = () => {
       setIsModalOpen(false);
       resetForm();
       fetchCerts();
-    } catch (err) { alert("Save failed"); }
+    } catch { notifyError("Save failed"); }
   };
 
   const resetForm = () => {
@@ -80,7 +85,7 @@ const CertificateAdmin = () => {
       try {
         await axios.delete(`${CMS_API}/${id}`);
         fetchCerts();
-      } catch (err) { alert("Delete failed"); }
+      } catch { notifyError("Delete failed"); }
     }
   };
 
@@ -195,6 +200,7 @@ const CertificateAdmin = () => {
                         </>
                       )}
                     </button>
+                    <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide ml-1 mt-2">⚠ Note: Please upload images in <span className="text-orange-500">WebP</span> format only</p>
                   </div>
 
                   <button 

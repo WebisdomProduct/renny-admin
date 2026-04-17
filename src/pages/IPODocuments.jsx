@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiEdit2, FiTrash2, FiPlus, FiX, FiFileText, FiExternalLink, FiUploadCloud, FiLink } from 'react-icons/fi';
+import { API } from '../config/api';
+import { notifySuccess, notifyError } from "../utils/notifications";
+
+
+
 
 const IPODocuments = () => {
   const [documents, setDocuments] = useState([]);
@@ -14,18 +19,16 @@ const IPODocuments = () => {
   const [formData, setFormData] = useState({ recordId: "", title: "", url: "", type: "file" });
 
   const brandColor = "#292C44";
-  const CMS_API = "http://localhost:3000/cms/ipo-documents";
-  const PUBLIC_API = "http://localhost:3000/api/ipo-documents";
-  const UPLOAD_API = "http://localhost:3000/cms/upload/upload"; 
+  const CMS_API = API.CMS_IPO_DOCS;
+  const PUBLIC_API = API.API_IPO_DOCS;
+  const UPLOAD_API = API.UPLOAD;
 
   // 1. FETCH: Get all documents
   const fetchIpoDocs = async () => {
     try {
       const res = await axios.get(PUBLIC_API);
       setDocuments(res.data);
-    } catch (err) { 
-      console.error("Fetch Error:", err); 
-    } finally { 
+    } catch { notifyError("Unable to complete the request."); } finally { 
       setLoading(false); 
     }
   };
@@ -43,9 +46,9 @@ const IPODocuments = () => {
     try {
       const res = await axios.post(UPLOAD_API, data);
       setFormData(prev => ({ ...prev, url: res.data.fileUrl, type: 'file' }));
-      alert("PDF uploaded to S3!");
-    } catch (err) { 
-      alert("S3 Upload Failed"); 
+      notifySuccess("PDF uploaded to S3!");
+    } catch { 
+      notifyError("S3 Upload Failed"); 
     } finally { 
       setUploading(false); 
     }
@@ -63,8 +66,8 @@ const IPODocuments = () => {
       });
       closeModal();
       fetchIpoDocs();
-    } catch (err) { 
-      alert("Error saving document"); 
+    } catch { 
+      notifyError("Error saving document"); 
     }
   };
 
@@ -76,12 +79,11 @@ const IPODocuments = () => {
         const res = await axios.delete(`${CMS_API}/record/${id}`);
         
         if (res.status === 200) {
-          alert("Document deleted successfully");
+          notifySuccess("Document deleted successfully");
           fetchIpoDocs(); // Refresh table
         }
       } catch (err) {
-        console.error("Delete Error:", err.response?.data || err.message);
-        alert("Failed to delete record: " + (err.response?.data?.message || "Server Error"));
+        notifyError("Failed to delete record: " + (err.response?.data?.message || "Server Error"));
       }
     }
   };

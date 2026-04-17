@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiEdit2, FiTrash2, FiPlus, FiX, FiVideo, FiExternalLink, FiUploadCloud, FiLink, FiCheckCircle } from 'react-icons/fi';
+import { API } from '../config/api';
+import { notifyError, notifyWarning } from "../utils/notifications";
+
+
+
 
 const IPAudioVisual = () => {
   const [videos, setVideos] = useState([]);
@@ -19,15 +24,15 @@ const IPAudioVisual = () => {
   });
 
   const brandColor = "#292C44";
-  const CMS_API = "http://localhost:3000/cms/ipo-av"; 
-  const PUBLIC_API = "http://localhost:3000/api/ipo-av";
-  const UPLOAD_API = "http://localhost:3000/cms/upload/upload";
+  const CMS_API = API.CMS_IPO_AV;
+  const PUBLIC_API = API.API_IPO_AV;
+  const UPLOAD_API = API.UPLOAD;
 
   const fetchVideos = async () => {
     try {
       const res = await axios.get(PUBLIC_API);
       setVideos(res.data);
-    } catch (err) { console.error("Fetch error:", err); } 
+    } catch { notifyError("Unable to load videos."); } 
     finally { setLoading(false); }
   };
 
@@ -37,7 +42,7 @@ const IPAudioVisual = () => {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('video/')) {
-      alert("Please select a valid video file.");
+      notifyWarning("Please select a valid video file.");
       return;
     }
 
@@ -50,8 +55,8 @@ const IPAudioVisual = () => {
       });
       // Corrected: Updating driveUrl to match the handleSubmit logic
       setFormData((prev) => ({ ...prev, driveUrl: res.data.fileUrl, type: 'file' }));
-    } catch (err) {
-      alert("S3 Upload Failed.");
+    } catch {
+      notifyError("S3 Upload Failed.");
     } finally { setUploading(false); }
   };
 
@@ -61,7 +66,7 @@ const handleSubmit = async (e) => {
 
   // Basic validation to prevent sending empty data
   if (!formData.driveUrl) {
-    alert("Please upload a file or paste a link first.");
+    notifyWarning("Please upload a file or paste a link first.");
     return;
   }
 
@@ -74,9 +79,8 @@ const handleSubmit = async (e) => {
     });
     closeModal();
     fetchVideos();
-  } catch (err) {
-    console.error("Server Response:", err.response?.data);
-    alert("Save failed: Check console for field mismatch.");
+  } catch {
+    notifyError("Save failed: Check console for field mismatch.");
   }
 };
 
@@ -85,7 +89,7 @@ const handleSubmit = async (e) => {
       try {
         await axios.delete(`${CMS_API}/video/${id}`);
         fetchVideos();
-      } catch (err) { alert("Delete failed"); }
+      } catch { notifyError("Delete failed"); }
     }
   };
 

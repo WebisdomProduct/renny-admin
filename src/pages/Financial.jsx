@@ -2,6 +2,11 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiEdit2, FiTrash2, FiPlus, FiX, FiFileText, FiUploadCloud } from "react-icons/fi";
+import { API } from "../config/api";
+import { notifySuccess, notifyError } from "../utils/notifications";
+
+
+
 
 const Financial = () => {
   const [data, setFinancials] = useState([]);
@@ -10,10 +15,9 @@ const Financial = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
-  const PUBLIC_API = "http://localhost:3000/api/financials";
-  const CMS_API = "http://localhost:3000/cms/financials";
- // Change this in your Financial.jsx:
-const UPLOAD_API = "http://localhost:3000/cms/upload/upload";
+  const PUBLIC_API = API.API_FINANCIALS;
+  const CMS_API = API.CMS_FINANCIALS;
+  const UPLOAD_API = API.UPLOAD;
 
   const CATEGORIES = [
     { key: "audited", label: "Audited Financials of the Company" },
@@ -36,7 +40,7 @@ const UPLOAD_API = "http://localhost:3000/cms/upload/upload";
     try {
       const res = await axios.get(PUBLIC_API);
       setFinancials(res.data);
-    } catch (err) { console.error(err); } 
+    } catch { notifyError("Unable to load financial records."); } 
     finally { setLoading(false); }
   };
 
@@ -57,10 +61,9 @@ const UPLOAD_API = "http://localhost:3000/cms/upload/upload";
       });
       // Set the returned S3 URL into the fileUrl field
       setFormData((prev) => ({ ...prev, fileUrl: res.data.fileUrl }));
-      alert("PDF uploaded to S3 successfully!");
-    } catch (err) {
-      console.error(err);
-      alert("S3 Upload Failed");
+      notifySuccess("PDF uploaded to S3 successfully!");
+    } catch {
+      notifyError("S3 Upload Failed");
     } finally {
       setUploading(false);
     }
@@ -97,8 +100,8 @@ const UPLOAD_API = "http://localhost:3000/cms/upload/upload";
       }
       closeModal();
       fetchFinancials();
-    } catch (err) {
-      alert("Error saving data.");
+    } catch {
+      notifyError("Error saving data.");
     }
   };
 

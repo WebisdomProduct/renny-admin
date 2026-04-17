@@ -2,6 +2,11 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiEdit2, FiTrash2, FiPlus, FiX, FiFileText, FiExternalLink, FiUploadCloud } from "react-icons/fi";
+import { API } from "../config/api";
+import { notifySuccess, notifyError } from "../utils/notifications";
+
+
+
 
 const IndustryReport = () => {
   const [reports, setReports] = useState([]);
@@ -18,17 +23,15 @@ const IndustryReport = () => {
   });
 
   const brandColor = "#292C44";
-  const API_BASE = "http://localhost:3000/cms/industry-report"; 
-  const PUBLIC_API = "http://localhost:3000/api/industry-report";
-  const UPLOAD_API = "http://localhost:3000/cms/upload/upload"; // Consistent S3 route
+  const API_BASE = API.CMS_INDUSTRY_REPORT;
+  const PUBLIC_API = API.API_INDUSTRY_REPORT;
+  const UPLOAD_API = API.UPLOAD;
 
   const fetchReports = async () => {
     try {
       const res = await axios.get(PUBLIC_API);
       setReports(res.data);
-    } catch (err) {
-      console.error("Fetch error:", err);
-    } finally {
+    } catch { notifyError("Unable to complete the request."); } finally {
       setLoading(false);
     }
   };
@@ -50,10 +53,8 @@ const IndustryReport = () => {
       });
       // Set the returned S3 URL into the form state automatically
       setFormData((prev) => ({ ...prev, url: res.data.fileUrl }));
-      alert("Report uploaded to Amazon S3!");
-    } catch (err) {
-      console.error(err);
-      alert("S3 Upload Failed. Check your AWS configuration.");
+      notifySuccess("Report uploaded to Amazon S3!");
+    } catch {      notifyError("S3 Upload Failed. Check your AWS configuration.");
     } finally {
       setUploading(false);
     }
@@ -69,8 +70,8 @@ const IndustryReport = () => {
       });
       closeModal();
       fetchReports();
-    } catch (err) {
-      alert("Error saving report");
+    } catch {
+      notifyError("Error saving report");
     }
   };
 
@@ -79,8 +80,8 @@ const IndustryReport = () => {
       try {
         await axios.delete(`${API_BASE}/record/${id}`);
         fetchReports();
-      } catch (err) {
-        alert("Delete failed");
+      } catch {
+        notifyError("Delete failed");
       }
     }
   };

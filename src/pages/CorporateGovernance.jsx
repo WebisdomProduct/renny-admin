@@ -8,6 +8,11 @@ import {
   FiX,
   FiUploadCloud,
 } from "react-icons/fi";
+import { API } from "../config/api";
+import { notifySuccess, notifyError } from "../utils/notifications";
+
+
+
 
 const GOVERNANCE_TABS = [
   { key: "board", label: "Board of Directors" },
@@ -33,17 +38,15 @@ const CorporateGovernance = () => {
 
   const [formData, setFormData] = useState({});
 
-  const CMS_API = "http://localhost:3000/cms/governance";
-  const PUBLIC_API = "http://localhost:3000/api/governance";
-  const UPLOAD_API = "http://localhost:3000/cms/upload/upload"; // Matches your registered route
+  const CMS_API = API.CMS_GOVERNANCE;
+  const PUBLIC_API = API.API_GOVERNANCE;
+  const UPLOAD_API = API.UPLOAD;
 
   const fetchGovernance = async () => {
     try {
       const res = await axios.get(PUBLIC_API);
       setSections(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
+    } catch { notifyError("Unable to complete the request."); } finally {
       setLoading(false);
     }
   };
@@ -67,10 +70,8 @@ const CorporateGovernance = () => {
       });
       // Backend route returns { success: true, fileUrl: "..." }
       setFormData((prev) => ({ ...prev, img: res.data.fileUrl }));
-      alert("Director photo uploaded to S3!");
-    } catch (err) {
-      console.error("S3 Upload Failed:", err);
-      alert("Failed to upload image to S3.");
+      notifySuccess("Director photo uploaded to S3!");
+    } catch {      notifyError("Failed to upload image to S3.");
     } finally {
       setUploading(false);
     }
@@ -86,8 +87,8 @@ const CorporateGovernance = () => {
       });
       closeModal();
       fetchGovernance();
-    } catch (err) {
-      alert("Save failed");
+    } catch {
+      notifyError("Save failed");
     }
   };
 
@@ -96,8 +97,8 @@ const CorporateGovernance = () => {
       try {
         await axios.delete(`${CMS_API}/${activeTab}/item/${itemId}`);
         fetchGovernance();
-      } catch (err) {
-        alert("Failed to delete.");
+      } catch {
+        notifyError("Failed to delete.");
       }
     }
   };
@@ -212,6 +213,7 @@ const CorporateGovernance = () => {
                           <><FiUploadCloud /> {formData.img ? "Photo Ready" : "Select Photo"}</>
                         )}
                       </label>
+                      <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide ml-1 mt-1">⚠ Note: Please upload images in <span className="text-orange-500">WebP</span> format only</p>
                     </div>
                   </div>
                 )}
