@@ -131,7 +131,7 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/admin/news" className="inline-flex items-center justify-center rounded-lg  px-4 py-2 text-sm font-medium text-white shadow  transition-colors">
+          <Link to="/admin/news" className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 transition-colors">
             <Plus className="mr-2 h-4 w-4" /> New Article
           </Link>
         </div>

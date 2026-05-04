@@ -170,7 +170,8 @@ const TimelineAdmin = () => {
                   <FiX size={20} />
                 </Button>
               </div>
-              <Card>
+              <form onSubmit={handleSubmit}>
+                <Card>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -232,6 +233,7 @@ const TimelineAdmin = () => {
                   </div>
                 </CardContent>
               </Card>
+              </form>
             </motion.div>
           </motion.div>
         )}
@@ -292,17 +294,17 @@ const TimelineAdmin = () => {
                       exit={{ height: 0, opacity: 0 }}
                       className="mt-6 overflow-hidden"
                     >
-                      <div className="grid gap-4 lg:grid-cols-[1fr_120px]">
+                      <div className="flex flex-col md:flex-row gap-6">
                         {item.image && (
                           <img
                             src={item.image}
                             alt={`Timeline ${item.year}`}
-                            className="h-40 w-full rounded-3xl object-cover shadow-inner"
+                            className="h-40 w-full md:w-64 rounded-3xl object-cover shadow-inner shrink-0"
                           />
                         )}
-                        <div className="space-y-4">
+                        <div className="space-y-4 flex-1 flex flex-col justify-center">
                           <p className="text-sm text-gray-600 leading-relaxed">{item.content}</p>
-                          <div className="flex flex-col gap-3 sm:flex-row">
+                          <div className="flex flex-wrap gap-3">
                             <Button type="button" variant="secondary" size="md" onClick={(e) => handleEdit(e, item)}>
                               Edit
                             </Button>

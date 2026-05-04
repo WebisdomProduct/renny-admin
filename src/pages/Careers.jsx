@@ -285,7 +285,7 @@ const CareerAdmin = () => {
                            href={app.resumeUrl} 
                            target="_blank" 
                            rel="noreferrer" 
-                           className="inline-flex items-center gap-3 px-8 py-3  text-white rounded-2xl font-bold text-sm hover:scale-105 transition-transform"
+                           className="inline-flex items-center gap-3 px-8 py-3 bg-[#292c44] text-white rounded-2xl font-bold text-sm hover:scale-105 transition-transform"
                          >
                            <FiFileText /> View Resume <FiExternalLink size={12}/>
                          </a>

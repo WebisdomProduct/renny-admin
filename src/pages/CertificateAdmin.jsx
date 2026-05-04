@@ -14,12 +14,10 @@ const CertificateAdmin = () => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   
-  // Added description to initial state to match provided dummy data
   const [formData, setFormData] = useState({ 
     id: null, 
     title: '', 
     img: '', 
-    description: '', // New field
     type: 'file' 
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -60,8 +58,8 @@ const CertificateAdmin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.img || !formData.title || !formData.description) {
-      return notifyError("Title, Description and Image are required");
+    if (!formData.img || !formData.title) {
+      return notifyError("Title and Image are required");
     }
 
     try {
@@ -77,7 +75,7 @@ const CertificateAdmin = () => {
   };
 
   const resetForm = () => {
-    setFormData({ id: null, title: '', img: '', description: '', type: 'file' });
+    setFormData({ id: null, title: '', img: '', type: 'file' });
   };
 
   const handleDelete = async (id) => {
@@ -131,7 +129,7 @@ const CertificateAdmin = () => {
                 <div className="aspect-[3/4] mb-4 overflow-hidden rounded-2xl border bg-gray-50 flex items-center justify-center relative">
                   <img src={cert.img} alt={cert.title} className="max-w-full max-h-full object-contain p-4" />
                   <div className="absolute inset-0 bg-[#292C44]/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                    <button onClick={() => { setFormData({ id: cert._id, title: cert.title, img: cert.img, description: cert.description, type: cert.type }); setIsModalOpen(true); }} className="p-3 bg-white rounded-full text-blue-600 shadow-xl hover:scale-110 transition-transform"><FiEdit3 /></button>
+                    <button onClick={() => { setFormData({ id: cert._id, title: cert.title, img: cert.img, type: cert.type }); setIsModalOpen(true); }} className="p-3 bg-white rounded-full text-blue-600 shadow-xl hover:scale-110 transition-transform"><FiEdit3 /></button>
                     <button onClick={() => handleDelete(cert._id)} className="p-3 bg-white rounded-full text-red-500 shadow-xl hover:scale-110 transition-transform"><FiTrash2 /></button>
                   </div>
                 </div>
@@ -167,18 +165,6 @@ const CertificateAdmin = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1">Standard Description</label>
-                    <textarea 
-                      required
-                      rows={4}
-                      value={formData.description} 
-                      onChange={(e)=>setFormData({...formData, description: e.target.value})} 
-                      className="w-full border p-4 rounded-2xl outline-none focus:ring-2 focus:ring-[#292C44] bg-gray-50 resize-none" 
-                      placeholder="Enter the certificate details and compliance info..." 
-                    />
-                  </div>
-                  
-                  <div>
                     <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1">Upload Certificate Image (S3)</label>
                     <input type="file" ref={fileInputRef} onChange={handleS3Upload} className="hidden" accept="image/*" />
                     <button 
@@ -196,7 +182,7 @@ const CertificateAdmin = () => {
                       ) : (
                         <>
                           <FiUploadCloud size={30} className="text-gray-300" />
-                          <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Browse Cloud Storage</span>
+                          <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Select Certificate Image</span>
                         </>
                       )}
                     </button>
