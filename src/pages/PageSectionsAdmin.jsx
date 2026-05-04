@@ -19,7 +19,7 @@ const PageSectionsAdmin = () => {
   const UPLOAD_API = API.UPLOAD;
 
   const pages = [
-    { route: '/',                        label: '🏠  Home' },
+    //{ route: '/',                        label: '🏠  Home' },
     { route: '/company-overview-2/',      label: '🏢  Company Overview' },
     { route: '/manufacturing-Process/',     label: '🏭  Manufacturing Process' },
     { route: '/quality-standard/',        label: '✅  Quality Standard' },
@@ -152,6 +152,20 @@ const PageSectionsAdmin = () => {
     setShowForm(true);
   };
 
+  const handleDelete = async (e, sectionName) => {
+    e.stopPropagation();
+    if (window.confirm(`Permanently delete section "${sectionName}"?`)) {
+      try {
+        const pageName = toPageName(selectedPage);
+        await axios.delete(`${CMS_API}/${encodeURIComponent(pageName)}/${encodeURIComponent(sectionName)}`);
+        fetchSections(selectedPage);
+        notifySuccess(`Section "${sectionName}" deleted successfully!`);
+      } catch (err) {
+        notifyError('Delete failed: ' + (err.response?.data?.message || err.message));
+      }
+    }
+  };
+
   const resetForm = () => {
     setFormData({ page: selectedPage, sectionName: 'Hero Banner', mediaUrl: '', mediaType: 'image', heading: '' });
     setSelectedFile(null);
@@ -254,6 +268,7 @@ const PageSectionsAdmin = () => {
                       {item.heading && <h5 className="font-bold text-lg mb-6">{item.heading}</h5>}
                       <div className="flex gap-2">
                          <button onClick={(e) => handleEdit(e, item)} className="flex-1 py-2 bg-gray-50 text-blue-600 text-[11px] font-bold rounded-lg uppercase hover:bg-blue-50">Edit</button>
+                         <button onClick={(e) => handleDelete(e, item.sectionName)} className="flex-1 py-2 bg-gray-50 text-red-600 text-[11px] font-bold rounded-lg uppercase hover:bg-red-50">Delete</button>
                       </div>
                    </motion.div>
                  )}
