@@ -3,7 +3,7 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiPlus, FiEdit3, FiTrash2, FiVideo, FiUploadCloud, 
-  FiX, FiPlay, FiEye, FiEyeOff, FiChevronDown, FiChevronUp, FiCalendar, FiLink 
+  FiX, FiPlay, FiEye, FiEyeOff, FiChevronDown, FiChevronUp, FiCalendar
 } from 'react-icons/fi';
 import { API } from '../config/api';
 import { notifySuccess, notifyError } from "../utils/notifications";
@@ -22,7 +22,7 @@ const EventsAdmin = () => {
   const [uploading, setUploading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false); // Resolved ReferenceError
-  const [uploadMode, setUploadMode] = useState('file'); 
+
   const [expandedId, setExpandedId] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -86,7 +86,8 @@ const EventsAdmin = () => {
       resetForm();
       fetchEvents();
       notifySuccess("Event synchronized successfully!");
-    } catch (err) {      notifyError("Error: " + (err.response?.data?.message || "Server error"));
+    } catch (err) {
+      notifyError("Error: " + (err.response?.data?.message || "Server error"));
     } finally {
       setLoading(false);
     }
@@ -119,7 +120,7 @@ const EventsAdmin = () => {
       order: item.order
     });
     setIsEditing(true);
-    setUploadMode(item.type || 'file');
+
     setShowForm(true);
   };
 
@@ -173,24 +174,24 @@ const EventsAdmin = () => {
                 <button onClick={resetForm} className="p-2 hover:bg-gray-100 rounded-full transition-all"><FiX size={22}/></button>
               </div>
 
-              <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
-                <button type="button" onClick={() => setUploadMode('file')} className={`flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 ${uploadMode === 'file' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}><FiUploadCloud /> S3 Video</button>
-                <button type="button" onClick={() => setUploadMode('link')} className={`flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 ${uploadMode === 'link' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}><FiLink /> Video Link</button>
-              </div>
+
+
+
+
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <input className="w-full px-5 py-4 bg-gray-50 border rounded-2xl outline-none focus:ring-2 focus:ring-[#292c44]" placeholder="Event Title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} required />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input className="px-5 py-4 bg-gray-50 border rounded-2xl outline-none" placeholder="Date (e.g. Dec 2024)" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} required />
-                  {uploadMode === 'file' ? (
+
                     <label className={`flex items-center justify-between px-5 py-4 bg-gray-50 border rounded-2xl cursor-pointer ${formData.videoUrl && formData.type === 'file' ? 'text-green-600 border-green-200' : 'text-gray-400'}`}>
                       <input type="file" className="hidden" accept="video/*" onChange={handleVideoUpload} />
                       <span className="truncate">{uploading ? "Uploading..." : formData.videoUrl ? "Video Ready" : "Upload Video to S3"}</span>
                       <FiUploadCloud />
                     </label>
-                  ) : (
-                    <input className="px-5 py-4 bg-gray-50 border rounded-2xl outline-none" placeholder="Video URL" value={formData.videoUrl} onChange={(e) => setFormData({...formData, videoUrl: e.target.value, type: 'link'})} required />
-                  )}
+
+
+
                 </div>
                 <textarea rows="3" className="w-full px-5 py-4 bg-gray-50 border rounded-2xl outline-none" placeholder="Event Description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} required />
                 <div className="grid grid-cols-2 gap-4">
