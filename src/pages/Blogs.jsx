@@ -29,7 +29,10 @@ const BlogAdmin = () => {
     mainImage: '',
     status: 'draft',
     date: '', // Managed "Display Date"
-    bodySections: []
+    bodySections: [],
+    seoTitle: '',
+    seoDescription: '',
+    seoKeywords: ''
   });
 
   useEffect(() => { fetchBlogs(); }, []);
@@ -74,6 +77,20 @@ const BlogAdmin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.seoTitle && formData.seoTitle.length > 60) {
+      notifyError("SEO Title cannot exceed 60 characters.");
+      return;
+    }
+    if (formData.seoDescription && formData.seoDescription.length > 100) {
+      notifyError("SEO Description cannot exceed 100 characters.");
+      return;
+    }
+    if (formData.seoKeywords && formData.seoKeywords.length > 100) {
+      notifyError("SEO Keywords cannot exceed 100 characters.");
+      return;
+    }
+
     setLoading(true);
 
     const payload = {
@@ -106,6 +123,9 @@ const BlogAdmin = () => {
       mainImage: blog.mainImage,
       status: blog.status,
       date: blog.date ? new Date(blog.date).toISOString().split('T')[0] : '',
+      seoTitle: blog.seoTitle || '',
+      seoDescription: blog.seoDescription || '',
+      seoKeywords: blog.seoKeywords || '',
       bodySections: (blog.bodySections || []).map(sec => {
         if (sec.type === 'table' && !sec.table) {
           return { ...sec, table: { headers: ['Column 1'], rows: [['']] } };
@@ -130,7 +150,17 @@ const BlogAdmin = () => {
   };
 
   const resetForm = () => {
-    setFormData({ title: '', excerpt: '', mainImage: '', status: 'draft', date: '', bodySections: [] });
+    setFormData({
+      title: '',
+      excerpt: '',
+      mainImage: '',
+      status: 'draft',
+      date: '',
+      bodySections: [],
+      seoTitle: '',
+      seoDescription: '',
+      seoKeywords: ''
+    });
     setIsEditing(false);
     setEditingId(null);
     setShowForm(false);
@@ -369,6 +399,69 @@ const BlogAdmin = () => {
                         <label className="absolute -top-6 left-2 text-[10px] font-black uppercase text-gray-300">Display Date</label>
                         <input type="date" className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 text-gray-500 font-bold" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
                         <span className="absolute right-4 top-4 text-gray-300 pointer-events-none"><FiCalendar /></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SEO Metadata Section */}
+                  <div className="space-y-6 border-t pt-8">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-[#292c44]/5 flex items-center justify-center text-[#292c44]">
+                        <FiLayers size={16} />
+                      </div>
+                      <h3 className="text-xs font-black uppercase tracking-widest text-[#292c44]">SEO Metadata</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          maxLength={60}
+                          className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[#292c44] text-sm font-medium"
+                          placeholder="Search engine title..."
+                          value={formData.seoTitle || ''}
+                          onChange={e => setFormData({ ...formData, seoTitle: e.target.value })}
+                        />
+                        <div className="flex justify-between items-center px-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">SEO Title</label>
+                          <span className={`text-[10px] font-bold ${(formData.seoTitle || '').length >= 60 ? 'text-red-500 font-black' : 'text-gray-400'}`}>
+                            {(formData.seoTitle || '').length} / 60
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          maxLength={100}
+                          className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[#292c44] text-sm font-medium"
+                          placeholder="Brief description for search engines..."
+                          value={formData.seoDescription || ''}
+                          onChange={e => setFormData({ ...formData, seoDescription: e.target.value })}
+                        />
+                        <div className="flex justify-between items-center px-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">SEO Description</label>
+                          <span className={`text-[10px] font-bold ${(formData.seoDescription || '').length >= 100 ? 'text-red-500 font-black' : 'text-gray-400'}`}>
+                            {(formData.seoDescription || '').length} / 100
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          maxLength={100}
+                          className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[#292c44] text-sm font-medium"
+                          placeholder="comma, separated, keywords..."
+                          value={formData.seoKeywords || ''}
+                          onChange={e => setFormData({ ...formData, seoKeywords: e.target.value })}
+                        />
+                        <div className="flex justify-between items-center px-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">SEO Keywords</label>
+                          <span className={`text-[10px] font-bold ${(formData.seoKeywords || '').length >= 100 ? 'text-red-500 font-black' : 'text-gray-400'}`}>
+                            {(formData.seoKeywords || '').length} / 100
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
