@@ -78,16 +78,12 @@ const BlogAdmin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.seoTitle && formData.seoTitle.length > 60) {
-      notifyError("SEO Title cannot exceed 60 characters.");
+    if (formData.seoTitle && formData.seoTitle.length > 70) {
+      notifyError("SEO Title cannot exceed 70 characters.");
       return;
     }
-    if (formData.seoDescription && formData.seoDescription.length > 100) {
-      notifyError("SEO Description cannot exceed 100 characters.");
-      return;
-    }
-    if (formData.seoKeywords && formData.seoKeywords.length > 100) {
-      notifyError("SEO Keywords cannot exceed 100 characters.");
+    if (formData.seoDescription && formData.seoDescription.length > 160) {
+      notifyError("SEO Description cannot exceed 160 characters.");
       return;
     }
 
@@ -416,7 +412,7 @@ const BlogAdmin = () => {
                       <div className="space-y-2">
                         <input
                           type="text"
-                          maxLength={60}
+                          maxLength={70}
                           className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[#292c44] text-sm font-medium"
                           placeholder="Search engine title..."
                           value={formData.seoTitle || ''}
@@ -424,8 +420,8 @@ const BlogAdmin = () => {
                         />
                         <div className="flex justify-between items-center px-1">
                           <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">SEO Title</label>
-                          <span className={`text-[10px] font-bold ${(formData.seoTitle || '').length >= 60 ? 'text-red-500 font-black' : 'text-gray-400'}`}>
-                            {(formData.seoTitle || '').length} / 60
+                          <span className={`text-[10px] font-bold ${(formData.seoTitle || '').length >= 70 ? 'text-red-500 font-black' : 'text-gray-400'}`}>
+                            {(formData.seoTitle || '').length} / 70
                           </span>
                         </div>
                       </div>
@@ -433,7 +429,7 @@ const BlogAdmin = () => {
                       <div className="space-y-2">
                         <input
                           type="text"
-                          maxLength={100}
+                          maxLength={160}
                           className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[#292c44] text-sm font-medium"
                           placeholder="Brief description for search engines..."
                           value={formData.seoDescription || ''}
@@ -441,8 +437,8 @@ const BlogAdmin = () => {
                         />
                         <div className="flex justify-between items-center px-1">
                           <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">SEO Description</label>
-                          <span className={`text-[10px] font-bold ${(formData.seoDescription || '').length >= 100 ? 'text-red-500 font-black' : 'text-gray-400'}`}>
-                            {(formData.seoDescription || '').length} / 100
+                          <span className={`text-[10px] font-bold ${(formData.seoDescription || '').length >= 160 ? 'text-red-500 font-black' : 'text-gray-400'}`}>
+                            {(formData.seoDescription || '').length} / 160
                           </span>
                         </div>
                       </div>
@@ -450,7 +446,6 @@ const BlogAdmin = () => {
                       <div className="space-y-2">
                         <input
                           type="text"
-                          maxLength={100}
                           className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[#292c44] text-sm font-medium"
                           placeholder="comma, separated, keywords..."
                           value={formData.seoKeywords || ''}
@@ -458,8 +453,8 @@ const BlogAdmin = () => {
                         />
                         <div className="flex justify-between items-center px-1">
                           <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">SEO Keywords</label>
-                          <span className={`text-[10px] font-bold ${(formData.seoKeywords || '').length >= 100 ? 'text-red-500 font-black' : 'text-gray-400'}`}>
-                            {(formData.seoKeywords || '').length} / 100
+                          <span className={`text-[10px] font-bold text-gray-400`}>
+                            {(formData.seoKeywords || '').length} characters
                           </span>
                         </div>
                       </div>
@@ -657,6 +652,29 @@ const BlogAdmin = () => {
                   {expandedId === blog._id ? <FiChevronUp /> : <FiChevronDown />}
                 </div>
               </div>
+              {expandedId === blog._id && (
+                <div className="px-6 pb-6 border-t border-gray-100 pt-4 bg-gray-50/30 space-y-4">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-gray-400 block mb-1">Excerpt / Summary</span>
+                    <p className="text-sm text-gray-600 font-medium">{blog.excerpt || 'No excerpt provided.'}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-100 pt-4">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-gray-400 block mb-1">SEO Title</span>
+                      <p className="text-sm text-[#292c44] font-bold">{blog.seoTitle || '—'}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-gray-400 block mb-1">SEO Description</span>
+                      <p className="text-sm text-[#292c44] font-medium">{blog.seoDescription || '—'}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-gray-400 block mb-1">SEO Keywords</span>
+                      <p className="text-sm text-[#292c44] font-medium">{blog.seoKeywords || '—'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

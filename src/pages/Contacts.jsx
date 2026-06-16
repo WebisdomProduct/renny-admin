@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Mail, Phone, User, MessageSquare, Trash2, ChevronDown, ChevronUp, Clock, Tag, Search, Inbox } from 'lucide-react';
+import { Mail, Phone, User, MessageSquare, Trash2, ChevronDown, ChevronUp, Clock, Tag, Search, Inbox, Download, Calendar, X } from 'lucide-react';
 import { API } from '../config/api';
 import { format } from 'date-fns';
 import { Card } from '../components/ui/Card';
@@ -16,11 +16,17 @@ const Contact = () => {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState(''); // Format: YYYY-MM-DD
+  const [endDate, setEndDate] = useState(''); // Format: YYYY-MM-DD
 
-  const fetchEnquiries = async () => {
+  const fetchEnquiries = async (start = '', end = '') => {
     try {
       setLoading(true);
-      const res = await axios.get(CMS_API);
+      const params = {};
+      if (start) params.startDate = start;
+      if (end) params.endDate = end;
+
+      const res = await axios.get(CMS_API, { params });
       setEnquiries(res.data.data || []);
     } catch {
       setEnquiries([]);
@@ -30,8 +36,8 @@ const Contact = () => {
   };
 
   useEffect(() => {
-    fetchEnquiries();
-  }, []);
+    fetchEnquiries(startDate, endDate);
+  }, [startDate, endDate]);
 
   const handleDelete = async (e, id) => {
     e.stopPropagation();
@@ -44,12 +50,91 @@ const Contact = () => {
         notifyError("Delete failed.");
       }
     }
+  };  const handleExportCSV = () => {
+    if (filteredEnquiries.length === 0) {
+      alert("No enquiries to export.");
+      return;
+    }
+
+    const headers = [
+      "ID",
+      "Full Name",
+      "Email",
+      "Phone Number",
+      "Enquiry Type / Classification",
+      "Message / Inquiry",
+      "Status",
+      "Created At",
+      "Company Name",
+      "Industry",
+      "Country",
+      "Receive Updates"
+    ];
+
+    const escapeCSV = (val) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val);
+      // Double up any existing double quotes to escape them
+      let escaped = str.replace(/"/g, '""');
+      // Replace all newlines with spaces to keep the row contiguous and prevent Excel row splitting issues
+      escaped = escaped.replace(/\r?\n|\r/g, ' ');
+      // Wrap the entire value in double quotes
+      return `"${escaped}"`;
+    };
+
+    const rows = filteredEnquiries.map((item) => [
+      item._id,
+      item.fullName,
+      item.email,
+      item.phoneNumber,
+      item.enquiryType || item.classification || "General",
+      item.message || item.inquiry || "",
+      item.status || "new",
+      item.createdAt ? format(new Date(item.createdAt), 'yyyy-MM-dd HH:mm:ss') : "",
+      item.companyName || "",
+      item.industry || "",
+      item.country || "",
+      item.receiveUpdates !== undefined ? item.receiveUpdates : ""
+    ]);
+
+    // Format headers and rows with CRLF line endings and full escaping
+    const csvContent = [
+      headers.map(h => `"${h.replace(/"/g, '""')}"`).join(","),
+      ...rows.map(row => row.map(escapeCSV).join(","))
+    ].join("\r\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    link.setAttribute("download", `enquiries_export_${dateStr}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const filteredEnquiries = enquiries.filter((item) =>
-    item.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEnquiries = enquiries.filter((item) => {
+    const matchesSearch =
+      item.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    let matchesDate = true;
+    if (item.createdAt) {
+      const itemDateStr = format(new Date(item.createdAt), 'yyyy-MM-dd');
+      if (startDate && itemDateStr < startDate) {
+        matchesDate = false;
+      }
+      if (endDate && itemDateStr > endDate) {
+        matchesDate = false;
+      }
+    } else if (startDate || endDate) {
+      matchesDate = false;
+    }
+
+    return matchesSearch && matchesDate;
+  });
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -62,22 +147,86 @@ const Contact = () => {
 
       <Card className="overflow-hidden">
         {/* Toolbar */}
-        <div className="p-4 border-b border-gray-100/75 bg-gray-50/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="relative w-full max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
+        <div className="p-4 border-b border-gray-100/75 bg-gray-50/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-2xl">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all outline-none"
+              />
             </div>
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all outline-none"
-            />
+
+            {/* Date Range Filters */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-wrap">
+              {/* Start Date */}
+              <div className="relative flex items-center bg-white border border-gray-200 rounded-lg pl-3 pr-2 py-2 text-sm focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-gray-900 transition-all">
+                <Calendar className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                <span className="text-xs text-gray-400 mr-1.5 font-medium uppercase select-none">From</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-transparent border-none outline-none text-sm text-gray-700 w-full cursor-pointer focus:ring-0 focus:outline-none"
+                />
+                {startDate && (
+                  <button
+                    onClick={() => setStartDate('')}
+                    className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600 ml-1.5 cursor-pointer"
+                    title="Clear start date"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* End Date */}
+              <div className="relative flex items-center bg-white border border-gray-200 rounded-lg pl-3 pr-2 py-2 text-sm focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-gray-900 transition-all">
+                <Calendar className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                <span className="text-xs text-gray-400 mr-1.5 font-medium uppercase select-none">To</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-transparent border-none outline-none text-sm text-gray-700 w-full cursor-pointer focus:ring-0 focus:outline-none"
+                />
+                {endDate && (
+                  <button
+                    onClick={() => setEndDate('')}
+                    className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600 ml-1.5 cursor-pointer"
+                    title="Clear end date"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg flex items-center gap-2">
-            <Inbox className="w-4 h-4" />
-            {enquiries.length} Messages
+
+          <div className="flex items-center justify-end gap-3 flex-shrink-0">
+            {/* Export CTA Button */}
+            <button
+              onClick={handleExportCSV}
+              disabled={filteredEnquiries.length === 0}
+              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 active:bg-gray-100 transition-all cursor-pointer ${
+                filteredEnquiries.length === 0 ? 'opacity-50 cursor-not-allowed hover:bg-white active:bg-white' : ''
+              }`}
+            >
+              <Download className="w-4 h-4 text-gray-500" />
+              Export to CSV
+            </button>
+
+            {/* Total Messages Count */}
+            <div className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-2 rounded-lg flex items-center gap-2">
+              <Inbox className="w-4 h-4" />
+              {filteredEnquiries.length} {filteredEnquiries.length === 1 ? 'Message' : 'Messages'}
+            </div>
           </div>
         </div>
 
@@ -172,7 +321,7 @@ const Contact = () => {
                     <div className="flex gap-3 mt-4">
                       <a 
                         href={`mailto:${item.email}`}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2  text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
                       >
                         <Mail className="w-4 h-4" /> Reply
                       </a>

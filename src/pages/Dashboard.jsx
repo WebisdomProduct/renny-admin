@@ -20,6 +20,7 @@ import { notifyError } from "../utils/notifications";
 const Dashboard = () => {
   // State for real-time data
   const [stats, setStats] = useState({
+    blogs: { total: 0, published: 0, draft: 0 },
     news: { total: 0, published: 0, draft: 0 },
     events: { total: 0, upcoming: 0 },
     apps: { total: 0 },
@@ -28,19 +29,26 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     try {
-      const [newsRes, eventsRes, appsRes, contactRes] = await Promise.all([
+      const [blogsRes, newsRes, eventsRes, appsRes, contactRes] = await Promise.all([
+        axios.get(`${API.CMS_BLOGS}?role=admin`).catch(() => ({ data: { data: [] } })),
         axios.get(API.CMS_NEWS).catch(() => ({ data: [] })),
         axios.get(`${API.CMS_EVENTS}?role=admin`).catch(() => ({ data: { data: [] } })),
         axios.get(`${API.CMS_CAREER}/applications`).catch(() => ({ data: { data: [] } })),
         axios.get(API.CMS_CONTACT).catch(() => ({ data: { data: [] } }))
       ]);
 
+      const blogsData = blogsRes.data?.data || [];
       const newsData = Array.isArray(newsRes.data) ? newsRes.data : newsRes.data.data || [];
       const eventsData = eventsRes.data?.data || [];
       const appsData = appsRes.data?.data || [];
       const contactData = contactRes.data?.data || [];
 
       setStats({
+        blogs: {
+          total: blogsData.length,
+          published: blogsData.filter(b => b.status === 'published').length,
+          draft: blogsData.filter(b => b.status === 'draft').length
+        },
         news: {
           total: newsData.length,
           published: newsData.filter(n => n.status === 'published').length,
@@ -66,8 +74,8 @@ const Dashboard = () => {
   const summaryCards = [
     {
       title: 'Active Blogs',
-      total: 12, // Static
-      trend: '+2 this week',
+      total: stats.blogs.total,
+      trend: `${stats.blogs.published} Published`,
       icon: FileText,
       color: 'text-blue-600',
       bg: 'bg-blue-50',
@@ -131,7 +139,7 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/admin/news" className="inline-flex items-center justify-center rounded-lg  px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 transition-colors">
+          <Link to="/admin/news" className="inline-flex items-center justify-center rounded-lg  px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-700 transition-colors">
             <Plus className="mr-2 h-4 w-4" /> New Article
           </Link>
         </div>
@@ -210,9 +218,9 @@ const Dashboard = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">
-                      News: {stats.news.draft}
+                      Blogs: {stats.blogs.draft} | News: {stats.news.draft}
                     </span>
-                    <Link to="/admin/news?status=draft" className="text-sm font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">Review →</Link>
+                    <Link to="/admin/blogs" className="text-sm font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">Review →</Link>
                   </div>
                 </div>
 
