@@ -32,7 +32,8 @@ const BlogAdmin = () => {
     bodySections: [],
     seoTitle: '',
     seoDescription: '',
-    seoKeywords: ''
+    seoKeywords: '',
+    structuredData: ''
   });
 
   useEffect(() => { fetchBlogs(); }, []);
@@ -87,10 +88,52 @@ const BlogAdmin = () => {
       return;
     }
 
+    let parsedStructuredData = null;
+    if (formData.structuredData && formData.structuredData.trim() !== '') {
+      const rawInput = formData.structuredData.trim();
+      
+      // Look for any <script> tags in the input
+      const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+      const matches = [];
+      let match;
+      
+      while ((match = scriptRegex.exec(rawInput)) !== null) {
+        const content = match[1].trim();
+        if (content) {
+          matches.push(content);
+        }
+      }
+      
+      try {
+        if (matches.length > 0) {
+          // Parse each script tag content individually
+          const parsedArray = matches.map((jsonStr) => {
+            const cleanStr = jsonStr
+              .replace(/[\u201C\u201D]/g, '"')
+              .replace(/[\u2018\u2019]/g, "'");
+            return JSON.parse(cleanStr);
+          });
+          
+          // Save as single object if only one script tag was pasted, else as an array
+          parsedStructuredData = parsedArray.length === 1 ? parsedArray[0] : parsedArray;
+        } else {
+          // No script tags, try to parse the entire input as a single JSON object/array
+          const cleanStr = rawInput
+            .replace(/[\u201C\u201D]/g, '"')
+            .replace(/[\u2018\u2019]/g, "'");
+          parsedStructuredData = JSON.parse(cleanStr);
+        }
+      } catch (err) {
+        notifyError(`Invalid JSON Schema: ${err.message}`);
+        return;
+      }
+    }
+
     setLoading(true);
 
     const payload = {
       ...formData,
+      structuredData: parsedStructuredData,
       date: formData.date ? new Date(formData.date) : new Date(), // Fallback to now
       publishedAt: formData.date ? new Date(formData.date) : new Date() // Syncing both for consistency
     };
@@ -122,6 +165,7 @@ const BlogAdmin = () => {
       seoTitle: blog.seoTitle || '',
       seoDescription: blog.seoDescription || '',
       seoKeywords: blog.seoKeywords || '',
+      structuredData: blog.structuredData ? JSON.stringify(blog.structuredData, null, 2) : '',
       bodySections: (blog.bodySections || []).map(sec => {
         if (sec.type === 'table' && !sec.table) {
           return { ...sec, table: { headers: ['Column 1'], rows: [['']] } };
@@ -155,7 +199,8 @@ const BlogAdmin = () => {
       bodySections: [],
       seoTitle: '',
       seoDescription: '',
-      seoKeywords: ''
+      seoKeywords: '',
+      structuredData: ''
     });
     setIsEditing(false);
     setEditingId(null);
@@ -459,6 +504,24 @@ const BlogAdmin = () => {
                         </div>
                       </div>
                     </div>
+                    
+                    <div className="space-y-2 mt-4">
+                      <textarea
+                        className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[#292c44] text-xs font-mono"
+                        placeholder='{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Example Title"
+}'
+                        rows={6}
+                        value={formData.structuredData || ''}
+                        onChange={e => setFormData({ ...formData, structuredData: e.target.value })}
+                      />
+                      <div className="flex justify-between items-center px-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Structured Data (JSON-LD Schema)</label>
+                        <span className="text-[10px] font-bold text-gray-400">Must be valid JSON formatting</span>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-6">
@@ -673,6 +736,15 @@ const BlogAdmin = () => {
                       <p className="text-sm text-[#292c44] font-medium">{blog.seoKeywords || '—'}</p>
                     </div>
                   </div>
+
+                  {blog.structuredData && (
+                    <div className="border-t border-gray-100 pt-4">
+                      <span className="text-[10px] font-black uppercase text-gray-400 block mb-1">Structured Data (JSON-LD)</span>
+                      <pre className="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg overflow-x-auto font-mono max-h-40">
+                        {JSON.stringify(blog.structuredData, null, 2)}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

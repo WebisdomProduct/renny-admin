@@ -1,6 +1,6 @@
 // Central API configuration — driven by environment variables.
 // Set VITE_API_BASE_URL in .env (dev) or .env.production (prod).
-const BASE = import.meta.env.VITE_API_BASE_URL;
+const BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://renny-backend-render.onrender.com";
 
 export const API = {
   // ─── Upload ───────────────────────────────────────────────────────────────
