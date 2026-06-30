@@ -91,19 +91,19 @@ const BlogAdmin = () => {
     let parsedStructuredData = null;
     if (formData.structuredData && formData.structuredData.trim() !== '') {
       const rawInput = formData.structuredData.trim();
-      
+
       // Look for any <script> tags in the input
       const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
       const matches = [];
       let match;
-      
+
       while ((match = scriptRegex.exec(rawInput)) !== null) {
         const content = match[1].trim();
         if (content) {
           matches.push(content);
         }
       }
-      
+
       try {
         if (matches.length > 0) {
           // Parse each script tag content individually
@@ -113,7 +113,7 @@ const BlogAdmin = () => {
               .replace(/[\u2018\u2019]/g, "'");
             return JSON.parse(cleanStr);
           });
-          
+
           // Save as single object if only one script tag was pasted, else as an array
           parsedStructuredData = parsedArray.length === 1 ? parsedArray[0] : parsedArray;
         } else {
@@ -123,6 +123,7 @@ const BlogAdmin = () => {
             .replace(/[\u2018\u2019]/g, "'");
           parsedStructuredData = JSON.parse(cleanStr);
         }
+        console.log("Schema Loaded:", parsedStructuredData);
       } catch (err) {
         notifyError(`Invalid JSON Schema: ${err.message}`);
         return;
@@ -452,7 +453,7 @@ const BlogAdmin = () => {
                       </div>
                       <h3 className="text-xs font-black uppercase tracking-widest text-[#292c44]">SEO Metadata</h3>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="space-y-2">
                         <input
@@ -504,7 +505,7 @@ const BlogAdmin = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2 mt-4">
                       <textarea
                         className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[#292c44] text-xs font-mono"
@@ -635,18 +636,18 @@ const BlogAdmin = () => {
                                       {(item.descriptions || [item.description || '']).map((desc, dIndex) => (
                                         <div key={dIndex} className="flex gap-2 items-center">
                                           <span className="text-[10px] text-gray-400 font-bold">{dIndex + 1}.</span>
-                                          <textarea 
-                                            className="flex-1 bg-transparent text-xs text-gray-500 outline-none" 
-                                            placeholder={`Description ${dIndex + 1} (Optional)`} 
-                                            value={desc} 
-                                            onChange={(e) => updateListDescription(sIndex, lIndex, dIndex, e.target.value)} 
-                                            rows="1" 
+                                          <textarea
+                                            className="flex-1 bg-transparent text-xs text-gray-500 outline-none"
+                                            placeholder={`Description ${dIndex + 1} (Optional)`}
+                                            value={desc}
+                                            onChange={(e) => updateListDescription(sIndex, lIndex, dIndex, e.target.value)}
+                                            rows="1"
                                           />
                                           {(item.descriptions || [item.description || '']).length > 1 && (
-                                            <button 
-                                              type="button" 
-                                              onClick={() => removeListDescription(sIndex, lIndex, dIndex)} 
-                                              className="text-red-300 hover:text-red-500 p-1" 
+                                            <button
+                                              type="button"
+                                              onClick={() => removeListDescription(sIndex, lIndex, dIndex)}
+                                              className="text-red-300 hover:text-red-500 p-1"
                                               title="Remove Description"
                                             >
                                               <FiX size={12} />
@@ -654,9 +655,9 @@ const BlogAdmin = () => {
                                           )}
                                         </div>
                                       ))}
-                                      <button 
-                                        type="button" 
-                                        onClick={() => addListDescription(sIndex, lIndex)} 
+                                      <button
+                                        type="button"
+                                        onClick={() => addListDescription(sIndex, lIndex)}
                                         className="text-[10px] font-bold text-blue-500 hover:text-blue-700 uppercase tracking-wider"
                                       >
                                         + Add Description Paragraph
@@ -721,7 +722,7 @@ const BlogAdmin = () => {
                     <span className="text-[10px] font-black uppercase text-gray-400 block mb-1">Excerpt / Summary</span>
                     <p className="text-sm text-gray-600 font-medium">{blog.excerpt || 'No excerpt provided.'}</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-100 pt-4">
                     <div>
                       <span className="text-[10px] font-black uppercase text-gray-400 block mb-1">SEO Title</span>
