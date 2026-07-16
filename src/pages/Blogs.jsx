@@ -52,13 +52,19 @@ const validateSchemaFormat = (schemaStr) => {
 
         const parsed = JSON.parse(cleanStr);
 
-        // Check required fields
-        if (!parsed['@context']) {
-          throw new Error('Schema missing required field: @context');
-        }
-        if (!parsed['@type']) {
-          throw new Error('Schema missing required field: @type');
-        }
+        const schemas = Array.isArray(parsed) ? parsed : [parsed];
+
+        schemas.forEach((schema, index) => {
+          if (!schema['@context']) {
+            throw new Error(
+              `Schema[${index}] missing required field: @context`
+            );
+          }
+
+          if (!schema['@type']) {
+            throw new Error(`Schema[${index}] missing required field: @type`);
+          }
+        });
       }
     } else {
       // Parse raw JSON
