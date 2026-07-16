@@ -26,6 +26,7 @@ import { notifySuccess, notifyError } from '../utils/notifications';
  * Validates schema format before submission
  * Checks for proper JSON-LD structure and required fields
  */
+
 const validateSchemaFormat = (schemaStr) => {
   if (!schemaStr || schemaStr.trim() === '') {
     return { valid: true, error: null }; // Empty schema is OK
@@ -46,11 +47,24 @@ const validateSchemaFormat = (schemaStr) => {
     // Validate extracted or raw JSON
     if (matches.length > 0) {
       for (const jsonStr of matches) {
-        const cleanStr = jsonStr
+        const cleanStr = rawInput
           .replace(/[\u201C\u201D]/g, '"')
           .replace(/[\u2018\u2019]/g, "'");
 
+        console.log('Raw schema string:', cleanStr);
+
         const parsed = JSON.parse(cleanStr);
+        console.log('Parsed value:', parsed);
+
+        if (Array.isArray(parsed)) {
+          parsed.forEach((schema, index) => {
+            console.log(`Schema ${index}:`, schema);
+            console.log('@context:', schema['@context']);
+            console.log('@type:', schema['@type']);
+          });
+        }
+        console.log('Parsed schema:', parsed);
+        console.log('Is array?', Array.isArray(parsed));
 
         const schemas = Array.isArray(parsed) ? parsed : [parsed];
 
