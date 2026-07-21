@@ -75,9 +75,13 @@ const validateSchemaFormat = (schemaStr) => {
             );
           }
 
-          if (!schema['@type']) {
-            throw new Error(`Schema[${index}] missing required field: @type`);
-          }
+         if (schema["@graph"]) {
+    schema["@graph"].forEach(item => {
+        if (!item["@type"]) {
+            throw new Error("@type missing");
+        }
+    });
+}
         });
       }
     } else {
@@ -86,14 +90,28 @@ const validateSchemaFormat = (schemaStr) => {
         .replace(/[\u201C\u201D]/g, '"')
         .replace(/[\u2018\u2019]/g, "'");
 
-      const parsed = JSON.parse(cleanStr);
+ const parsed = JSON.parse(cleanStr);
 
-      if (!parsed['@context']) {
-        throw new Error('Schema missing required field: @context');
-      }
-      if (!parsed['@type']) {
-        throw new Error('Schema missing required field: @type');
-      }
+if (!parsed["@context"]) {
+  throw new Error("Schema missing required field: @context");
+}
+
+if (parsed["@graph"]) {
+  if (!Array.isArray(parsed["@graph"])) {
+    throw new Error("@graph must be an array");
+  }
+
+  parsed["@graph"].forEach((item, index) => {
+    if (!item["@type"]) {
+      throw new Error(`@graph[${index}] missing @type`);
+    }
+  });
+} else {
+  if (!parsed["@type"]) {
+    throw new Error("Schema missing required field: @type");
+  }
+}
+     
     }
 
     return { valid: true, error: null };
@@ -102,46 +120,7 @@ const validateSchemaFormat = (schemaStr) => {
   }
 };
 
-/**
- * Pre-built schema templates for common blog types
- */
-const schemaTemplates = {
-  blogPosting: {
-    '@context': 'https://schema.org',
-    '@type': 'BlogPosting',
-    headline: 'Your Blog Title Here',
-    description: 'A brief description of your blog post',
-    image: 'https://rennystrips.com/images/blog-hero.webp',
-    datePublished: new Date().toISOString().split('T')[0],
-    dateModified: new Date().toISOString().split('T')[0],
-    author: {
-      '@type': 'Organization',
-      name: 'Renny Strips Limited',
-      url: 'https://rennystrips.com',
-    },
-    publisher: {
-      '@type': 'Organization',
-      name: 'Renny Strips Limited',
-      logo: {
-        '@type': 'ImageObject',
-        url: 'https://rennystrips.com/logo.webp',
-      },
-    },
-  },
-  article: {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: 'Your Article Title Here',
-    description: 'Article description',
-    image: 'https://rennystrips.com/images/blog-hero.webp',
-    datePublished: new Date().toISOString().split('T')[0],
-    dateModified: new Date().toISOString().split('T')[0],
-    author: {
-      '@type': 'Organization',
-      name: 'Renny Strips Limited',
-    },
-  },
-};
+
 
 const BlogAdmin = () => {
   const CMS_API = API.CMS_BLOGS;
@@ -233,8 +212,7 @@ const BlogAdmin = () => {
         return; // Stop here, don't submit invalid schema
       }
     }
-
-    let parsedStructuredData = null;
+ let parsedStructuredData = null;
     if (formData.structuredData && formData.structuredData.trim() !== '') {
       const rawInput = formData.structuredData.trim();
 
@@ -261,8 +239,7 @@ const BlogAdmin = () => {
           });
 
           // Save as single object if only one script tag was pasted, else as an array
-          parsedStructuredData =
-            parsedArray.length === 1 ? parsedArray[0] : parsedArray;
+          parsedStructuredData = parsedArray.length === 1 ? parsedArray[0] : parsedArray;
         } else {
           // No script tags, try to parse the entire input as a single JSON object/array
           const cleanStr = rawInput
@@ -270,7 +247,7 @@ const BlogAdmin = () => {
             .replace(/[\u2018\u2019]/g, "'");
           parsedStructuredData = JSON.parse(cleanStr);
         }
-        console.log('Schema Loaded:', parsedStructuredData);
+        console.log("Schema Loaded:", parsedStructuredData);
       } catch (err) {
         notifyError(`Invalid JSON Schema: ${err.message}`);
         return;
@@ -802,110 +779,22 @@ const BlogAdmin = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-2 mt-4">
-                      {/* Calculate validation status */}
-                      {(() => {
-                        const schemaValidation = formData.structuredData
-                          ? validateSchemaFormat(formData.structuredData)
-                          : { valid: true };
-                        return (
-                          <>
-                            <div className="flex justify-between items-center">
-                              <h3 className="text-[10px] font-bold uppercase text-gray-400 block">
-                                SCHEMA UPDATE
-                              </h3>
-                              {/* Quick insert template buttons */}
-                              <div className="flex gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setFormData({
-                                      ...formData,
-                                      structuredData: JSON.stringify(
-                                        schemaTemplates.blogPosting,
-                                        null,
-                                        2
-                                      ),
-                                    })
-                                  }
-                                  title="Insert BlogPosting schema template"
-                                  className="text-xs px-2 py-1 bg-blue-50 border border-blue-300 rounded hover:bg-blue-100 transition"
-                                >
-                                  📄 BlogPosting
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setFormData({
-                                      ...formData,
-                                      structuredData: JSON.stringify(
-                                        schemaTemplates.article,
-                                        null,
-                                        2
-                                      ),
-                                    })
-                                  }
-                                  title="Insert Article schema template"
-                                  className="text-xs px-2 py-1 bg-blue-50 border border-blue-300 rounded hover:bg-blue-100 transition"
-                                >
-                                  📰 Article
-                                </button>
-                              </div>
-                            </div>
-
-                            <textarea
-                              className={`w-full p-4 rounded-2xl outline-none ring-1 text-xs font-mono transition ${
-                                formData.structuredData &&
-                                !schemaValidation.valid
-                                  ? 'bg-red-50 ring-red-300 focus:ring-red-500'
-                                  : 'bg-gray-50 ring-gray-100 focus:ring-[#292c44]'
-                              }`}
-                              placeholder={`{
+                            <div className="space-y-2 mt-4">
+                      <textarea
+                        className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[#292c44] text-xs font-mono"
+                        placeholder='{
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "headline": "Example Title",
-  "description": "Blog description",
-  "author": {
-    "@type": "Organization",
-    "name": "Renny Strips"
-  },
-  "datePublished": "${new Date().toISOString().split('T')[0]}"
-}`}
-                              rows={10}
-                              value={formData.structuredData || ''}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  structuredData: e.target.value,
-                                })
-                              }
-                            />
-
-                            <div className="flex justify-between items-center px-1">
-                              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                Structured Data (JSON-LD Schema)
-                              </label>
-                              {formData.structuredData ? (
-                                <span
-                                  className={`text-[10px] font-bold transition ${
-                                    schemaValidation.valid
-                                      ? 'text-green-600'
-                                      : 'text-red-600'
-                                  }`}
-                                >
-                                  {schemaValidation.valid
-                                    ? '✅ Valid Schema'
-                                    : `❌ ${schemaValidation.error}`}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-bold text-gray-400">
-                                  Optional - Must be valid JSON
-                                </span>
-                              )}
-                            </div>
-                          </>
-                        );
-                      })()}
+  "headline": "Example Title"
+}'
+                        rows={6}
+                        value={formData.structuredData || ''}
+                        onChange={e => setFormData({ ...formData, structuredData: e.target.value })}
+                      />
+                      <div className="flex justify-between items-center px-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Structured Data (JSON-LD Schema)</label>
+                        <span className="text-[10px] font-bold text-gray-400">Must be valid JSON formatting</span>
+                      </div>
                     </div>
                   </div>
 
