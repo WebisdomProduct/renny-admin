@@ -133,11 +133,13 @@ const BlogAdmin = () => {
   const [editingId, setEditingId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingSmall, setUploadingSmall] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
     excerpt: '',
     mainImage: '',
+    smallImage: '',
     status: 'draft',
     date: '', // Managed "Display Date"
     bodySections: [],
@@ -149,6 +151,7 @@ const BlogAdmin = () => {
 
   useEffect(() => {
     fetchBlogs();
+    console.log("server API:", CMS_API);
   }, []);
 
   const fetchBlogs = async () => {
@@ -169,11 +172,27 @@ const BlogAdmin = () => {
     setUploading(true);
     try {
       const res = await axios.post(UPLOAD_API, data);
-      setFormData({ ...formData, mainImage: res.data.fileUrl });
+      setFormData((prev) => ({ ...prev, mainImage: res.data.fileUrl }));
     } catch {
-      notifyError('Image upload failed');
+      notifyError('Main image upload failed');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleSmallImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const data = new FormData();
+    data.append('file', file);
+    setUploadingSmall(true);
+    try {
+      const res = await axios.post(UPLOAD_API, data);
+      setFormData((prev) => ({ ...prev, smallImage: res.data.fileUrl }));
+    } catch {
+      notifyError('Small image upload failed');
+    } finally {
+      setUploadingSmall(false);
     }
   };
 
@@ -293,7 +312,8 @@ const BlogAdmin = () => {
     setFormData({
       title: blog.title,
       excerpt: blog.excerpt,
-      mainImage: blog.mainImage,
+      mainImage: blog.mainImage || '',
+      smallImage: blog.smallImage || '',
       status: blog.status,
       date: blog.date ? new Date(blog.date).toISOString().split('T')[0] : '',
       seoTitle: blog.seoTitle || '',
@@ -331,6 +351,7 @@ const BlogAdmin = () => {
       title: '',
       excerpt: '',
       mainImage: '',
+      smallImage: '',
       status: 'draft',
       date: '',
       bodySections: [],
@@ -633,9 +654,12 @@ const BlogAdmin = () => {
                       }
                     />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Main Image Upload */}
                       <div className="relative group">
+                        <label className="text-[11px] font-black uppercase text-gray-500 block mb-1.5">
+                          Main Image
+                        </label>
                         <input
                           type="file"
                           id="main-up"
@@ -645,22 +669,39 @@ const BlogAdmin = () => {
                         />
                         <label
                           htmlFor="main-up"
-                          className={`w-full p-4 flex items-center justify-between bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 cursor-pointer hover:bg-gray-100 transition-all ${formData.mainImage ? 'text-green-600' : 'text-gray-400'}`}
+                          className={`w-full p-4 flex items-center justify-between bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 cursor-pointer hover:bg-gray-100 transition-all ${formData.mainImage ? 'text-green-600 font-semibold' : 'text-gray-400'}`}
                         >
-                          <span className="truncate max-w-[150px]">
+                          <span className="truncate max-w-[180px]">
                             {uploading
-                              ? 'Uploading...'
+                              ? 'Uploading Main...'
                               : formData.mainImage
-                                ? 'Image Ready'
+                                ? 'Main Image Ready'
                                 : 'Upload Main Image'}
                           </span>
                           <FiUploadCloud size={18} />
                         </label>
                         {formData.mainImage && (
-                          <img
-                            src={formData.mainImage}
-                            className="absolute -top-12 right-0 w-12 h-12 rounded-lg border-2 border-white shadow-md group-hover:scale-150 transition-all"
-                          />
+                          <div className="flex items-center justify-between mt-2 px-1">
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={formData.mainImage}
+                                alt="Main Preview"
+                                className="w-12 h-12 rounded-lg object-cover border-2 border-white shadow-md"
+                              />
+                              <span className="text-xs text-gray-500 font-medium truncate max-w-[180px]">
+                                Ready
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFormData((prev) => ({ ...prev, mainImage: '' }))
+                              }
+                              className="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1 bg-red-50 hover:bg-red-100 rounded-lg transition-all"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         )}
                         <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide ml-1 mt-1">
                           ⚠ Note: Please upload images in{' '}
@@ -669,11 +710,68 @@ const BlogAdmin = () => {
                         </p>
                       </div>
 
-                      {/* Display Date Only */}
-                      <div className="relative">
-                        <label className="absolute -top-6 left-2 text-[10px] font-black uppercase text-gray-300">
-                          Display Date
+                      {/* Small Image Upload */}
+                      <div className="relative group">
+                        <label className="text-[11px] font-black uppercase text-gray-500 block mb-1.5">
+                          Small Image
                         </label>
+                        <input
+                          type="file"
+                          id="small-up"
+                          className="hidden"
+                          onChange={handleSmallImageUpload}
+                          accept="image/*"
+                        />
+                        <label
+                          htmlFor="small-up"
+                          className={`w-full p-4 flex items-center justify-between bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 cursor-pointer hover:bg-gray-100 transition-all ${formData.smallImage ? 'text-green-600 font-semibold' : 'text-gray-400'}`}
+                        >
+                          <span className="truncate max-w-[180px]">
+                            {uploadingSmall
+                              ? 'Uploading Small...'
+                              : formData.smallImage
+                                ? 'Small Image Ready'
+                                : 'Upload Small Image'}
+                          </span>
+                          <FiUploadCloud size={18} />
+                        </label>
+                        {formData.smallImage && (
+                          <div className="flex items-center justify-between mt-2 px-1">
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={formData.smallImage}
+                                alt="Small Preview"
+                                className="w-12 h-12 rounded-lg object-cover border-2 border-white shadow-md"
+                              />
+                              <span className="text-xs text-gray-500 font-medium truncate max-w-[180px]">
+                                Ready
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFormData((prev) => ({ ...prev, smallImage: '' }))
+                              }
+                              className="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1 bg-red-50 hover:bg-red-100 rounded-lg transition-all"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )}
+                        <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide ml-1 mt-1">
+                          ⚠ Note: Please upload images in{' '}
+                          <span className="text-orange-500">WebP</span> format
+                          only
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Display Date Only */}
+                    <div className="relative">
+                      <label className="text-[11px] font-black uppercase text-gray-500 block mb-1.5">
+                        Display Date
+                      </label>
+                      <div className="relative">
                         <input
                           type="date"
                           className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 text-gray-500 font-bold"
@@ -1276,8 +1374,8 @@ const BlogAdmin = () => {
                     </select>
                     <button
                       type="submit"
-                      disabled={loading || uploading}
-                      className="flex-1 py-4 bg-[#292c44] text-white rounded-2xl font-poppins font-bold shadow-xl"
+                      disabled={loading || uploading || uploadingSmall}
+                      className="flex-1 py-4 bg-[#292c44] text-white rounded-2xl font-poppins font-bold shadow-xl disabled:opacity-50"
                     >
                       {loading
                         ? 'Saving...'
@@ -1310,7 +1408,7 @@ const BlogAdmin = () => {
                 }
               >
                 <div className="flex gap-4 items-center">
-                  <img
+                   <img
                     src={blog.mainImage}
                     className="w-16 h-16 rounded-2xl object-cover bg-gray-100"
                     alt=""
@@ -1364,6 +1462,37 @@ const BlogAdmin = () => {
                     <p className="text-sm text-gray-600 font-medium">
                       {blog.excerpt || 'No excerpt provided.'}
                     </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 pt-4">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-gray-400 block mb-2">
+                        Main Image
+                      </span>
+                      {blog.mainImage ? (
+                        <img
+                          src={blog.mainImage}
+                          alt="Main"
+                          className="h-24 rounded-xl object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">No main image</span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-gray-400 block mb-2">
+                        Small Image
+                      </span>
+                      {blog.smallImage ? (
+                        <img
+                          src={blog.smallImage}
+                          alt="Small"
+                          className="h-24 rounded-xl object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">No small image</span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-100 pt-4">
