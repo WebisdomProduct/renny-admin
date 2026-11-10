@@ -3,7 +3,7 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiPlus, FiEdit3, FiTrash2, FiVideo, FiUploadCloud, 
-  FiX, FiPlay, FiEye, FiEyeOff, FiChevronDown, FiChevronUp, FiCalendar
+  FiX, FiPlay, FiEye, FiEyeOff, FiChevronDown, FiChevronUp, FiCalendar, FiMapPin
 } from 'react-icons/fi';
 import { API } from '../config/api';
 import { notifySuccess, notifyError } from "../utils/notifications";
@@ -29,6 +29,7 @@ const EventsAdmin = () => {
     id: null, 
     title: '', 
     date: '', 
+    location:'',
     videoUrl: '', 
     type: 'file', 
     description: '', 
@@ -113,6 +114,7 @@ const EventsAdmin = () => {
       id: item._id,
       title: item.title,
       date: item.date,
+      location:item.location || '',
       videoUrl: item.videoUrl,
       type: item.type || 'file',
       description: item.description,
@@ -125,7 +127,7 @@ const EventsAdmin = () => {
   };
 
   const resetForm = () => {
-    setFormData({ id: null, title: '', date: '', videoUrl: '', type: 'file', description: '', status: 'published', order: 0 });
+    setFormData({ id: null, title: '', date: '', location:'', videoUrl: '', type: 'file', description: '', status: 'published', order: 0 });
     setIsEditing(false);
     setShowForm(false);
   };
@@ -193,6 +195,15 @@ const EventsAdmin = () => {
 
 
                 </div>
+                <div className="relative">
+    <FiMapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
+    <input
+      className="w-full pl-12 pr-5 py-4 bg-gray-50 border rounded-2xl outline-none focus:ring-2 focus:ring-[#292c44]"
+      placeholder="Location (e.g. Ludhiana, India)"
+      value={formData.location}
+      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+    />
+  </div>
                 <textarea rows="3" className="w-full px-5 py-4 bg-gray-50 border rounded-2xl outline-none" placeholder="Event Description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} required />
                 <div className="grid grid-cols-2 gap-4">
                   <select className="px-5 py-4 bg-gray-50 rounded-2xl font-bold outline-none border" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
@@ -224,7 +235,9 @@ const EventsAdmin = () => {
                   </div>
                   <div className="flex-1">
                     <h4 className="font-bold text-gray-800">{item.title}</h4>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase">{item.status} • {item.date}</p>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase">
+  {item.status} • {item.date}{item.location ? ` • ${item.location}` : ''}
+</p>
                   </div>
                   {expandedId === item._id ? <FiChevronUp /> : <FiChevronDown />}
                </div>
