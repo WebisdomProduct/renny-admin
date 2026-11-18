@@ -215,7 +215,10 @@ const CareerAdmin = () => {
                         <div>
                           <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-2">Job Description</p>
                           {/* whitespace-pre-wrap ensures formatting is preserved */}
-                          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{job.description}</p>
+                          <div
+                            className={`text-sm text-gray-600 leading-relaxed ${htmlStyles}`}
+                            dangerouslySetInnerHTML={{ __html: job.description }}
+                            />
                         </div>
                         <div className="flex gap-3">
                           <button onClick={(e) => handleEdit(e, job)} className="flex-1 py-3 bg-gray-50 text-[#292c44] font-bold rounded-2xl flex items-center justify-center gap-2 hover:bg-gray-100 transition-all"><FiEdit3 /> Edit Vacancy</button>
@@ -349,10 +352,21 @@ const CareerAdmin = () => {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block ml-1">Detailed Job Description</label>
-                  <textarea className="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 h-48" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} required />
-                </div>
-
+  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block ml-1">
+    Detailed Job Description (HTML)
+  </label>
+  <textarea
+    className="w-full p-4 bg-gray-50 text-gray-800 rounded-2xl outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[#292c44] h-64 font-mono text-sm leading-relaxed"
+    value={formData.description}
+    onChange={e => setFormData({ ...formData, description: e.target.value })}
+    spellCheck="false"
+    required
+    placeholder={`<p>Short intro about the role.</p>\n<h3>Responsibilities</h3>\n<ul>\n  <li>Point one</li>\n  <li>Point two</li>\n</ul>`}
+  />
+  <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide ml-1 mt-1">
+    ⚠ Raw HTML: shown on the careers page exactly as typed.
+  </p>
+</div>
                 <div className="flex gap-4">
                    <select className="flex-1 p-4 bg-gray-50 rounded-2xl outline-none font-bold" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
                       <option value="published">Status: Published</option>
@@ -372,5 +386,9 @@ const CareerAdmin = () => {
     </div>
   );
 };
-
+export const htmlStyles =
+  '[&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3 ' +
+  '[&_li]:mb-1 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-4 [&_h2]:mb-2 ' +
+  '[&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-2 [&_a]:text-blue-700 [&_a]:underline ' +
+  '[&_strong]:font-bold';
 export default CareerAdmin;
